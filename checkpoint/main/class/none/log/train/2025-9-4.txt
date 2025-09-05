@@ -1,0 +1,71 @@
+2025-09-04 12:10:24,893 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=200, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:10:24,894 Command Line: tool/main.py
+2025-09-04 12:12:08,048 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=200, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:12:08,049 Command Line: tool/main.py
+2025-09-04 12:13:25,947 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=200, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:13:25,947 Command Line: tool/main.py
+2025-09-04 12:15:40,301 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=200, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:15:40,302 Command Line: tool/main.py
+2025-09-04 12:16:57,962 Epoch: 1 [Train][dryness][150/151] ---- >  loss: 0.1855
+2025-09-04 12:17:00,826 Epoch: 1 [Valid][Lr: 0.005000][Early Stop: 0/50][dryness] micro Precision: 12.50%, micro F1: 0.1250
+2025-09-04 12:17:00,827 Epoch: 1 [Valid][dryness][2/3] ---- >  loss: 6.0306, Correlation: 0.03
+2025-09-04 12:17:19,812 Epoch: 2 [Train][dryness][150/151] ---- >  loss: 0.1744
+2025-09-04 12:17:22,774 Epoch: 2 [Valid][Lr: 0.005000][Early Stop: 0/50][dryness] micro Precision: 2.27%, micro F1: 0.0227
+2025-09-04 12:17:22,775 Epoch: 2 [Valid][dryness][2/3] ---- >  loss: 1.8089, Correlation: 0.07
+2025-09-04 12:17:40,598 Epoch: 3 [Train][dryness][150/151] ---- >  loss: 0.1731
+2025-09-04 12:17:43,504 Epoch: 3 [Valid][Lr: 0.005000][Early Stop: 0/50][dryness] micro Precision: 31.82%, micro F1: 0.3182
+2025-09-04 12:17:43,506 Epoch: 3 [Valid][dryness][2/3] ---- >  loss: 1.5912, Correlation: 0.09
+2025-09-04 12:18:01,461 Epoch: 4 [Train][dryness][150/151] ---- >  loss: 0.1724
+2025-09-04 12:18:03,276 Epoch: 4 [Valid][Lr: 0.005000][Early Stop: 1/50][dryness] micro Precision: 30.68%, micro F1: 0.3068
+2025-09-04 12:18:03,278 Epoch: 4 [Valid][dryness][2/3] ---- >  loss: 1.6726, Correlation: 0.11
+2025-09-04 12:29:21,110 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=200, res=256, gamma=2, load_epoch={'dryness': 3, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': 1.5912, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:29:21,118 Command Line: tool/main.py
+2025-09-04 12:33:21,278 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 3, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': 1.5912, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:33:21,284 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 12:36:29,782 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 3, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=8, reset=False, best_loss={'dryness': 1.5912, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:36:29,782 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 12:38:51,150 Epoch: 1 [Train][pigmentation][363/364] ---- >  loss: 0.3554
+2025-09-04 12:38:56,502 Epoch: 1 [Valid][Lr: 0.005000][Early Stop: 0/50][pigmentation] micro Precision: 8.33%, micro F1: 0.0833
+2025-09-04 12:38:56,504 Epoch: 1 [Valid][pigmentation][8/9] ---- >  loss: 3.8066, Correlation: nan
+2025-09-04 12:39:39,012 Epoch: 2 [Train][pigmentation][363/364] ---- >  loss: 0.2999
+2025-09-04 12:39:44,293 Epoch: 2 [Valid][Lr: 0.005000][Early Stop: 0/50][pigmentation] micro Precision: 18.48%, micro F1: 0.1848
+2025-09-04 12:39:44,295 Epoch: 2 [Valid][pigmentation][8/9] ---- >  loss: 2.7203, Correlation: 0.58
+2025-09-04 12:40:27,015 Epoch: 3 [Train][pigmentation][363/364] ---- >  loss: 0.2837
+2025-09-04 12:40:32,305 Epoch: 3 [Valid][Lr: 0.005000][Early Stop: 0/50][pigmentation] micro Precision: 26.45%, micro F1: 0.2645
+2025-09-04 12:40:32,306 Epoch: 3 [Valid][pigmentation][8/9] ---- >  loss: 1.5665, Correlation: 0.62
+2025-09-04 12:45:46,944 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=16, num_workers=4, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:45:46,945 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 12:46:43,831 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=16, num_workers=4, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:46:43,832 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 12:49:33,979 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 0, 'pigmentation': 0, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=16, num_workers=4, reset=False, best_loss={'dryness': inf, 'pigmentation': inf, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:49:33,980 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 12:52:47,882 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 3, 'pigmentation': 3, 'pore': 0, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=4, reset=False, best_loss={'dryness': 1.5912, 'pigmentation': 1.5665, 'pore': inf, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 12:52:47,888 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 12:54:55,905 Epoch: 1 [Train][pore][214/215] ---- >  loss: 0.1725
+2025-09-04 12:54:59,053 Epoch: 1 [Valid][Lr: 0.005000][Early Stop: 0/50][pore] micro Precision: 25.70%, micro F1: 0.2570
+2025-09-04 12:54:59,055 Epoch: 1 [Valid][pore][5/6] ---- >  loss: 1.6650, Correlation: 0.38
+2025-09-04 12:55:24,376 Epoch: 2 [Train][pore][214/215] ---- >  loss: 0.1407
+2025-09-04 12:55:27,634 Epoch: 2 [Valid][Lr: 0.005000][Early Stop: 0/50][pore] micro Precision: 47.49%, micro F1: 0.4749
+2025-09-04 12:55:27,636 Epoch: 2 [Valid][pore][5/6] ---- >  loss: 1.3954, Correlation: 0.49
+2025-09-04 12:55:51,886 Epoch: 3 [Train][pore][214/215] ---- >  loss: 0.1331
+2025-09-04 12:55:53,931 Epoch: 3 [Valid][Lr: 0.005000][Early Stop: 1/50][pore] micro Precision: 37.99%, micro F1: 0.3799
+2025-09-04 12:55:53,932 Epoch: 3 [Valid][pore][5/6] ---- >  loss: 1.4629, Correlation: 0.46
+2025-09-04 12:56:19,150 Epoch: 1 [Train][sagging][106/107] ---- >  loss: nan
+2025-09-04 12:56:21,269 Epoch: 1 [Valid][Lr: 0.005000][Early Stop: 1/50][sagging] micro Precision: 43.01%, micro F1: 0.4301
+2025-09-04 12:56:21,271 Epoch: 1 [Valid][sagging][2/3] ---- >  loss: nan, Correlation: nan
+2025-09-04 12:56:34,689 Epoch: 2 [Train][sagging][106/107] ---- >  loss: nan
+2025-09-04 12:56:36,724 Epoch: 2 [Valid][Lr: 0.005000][Early Stop: 2/50][sagging] micro Precision: 43.01%, micro F1: 0.4301
+2025-09-04 12:56:36,725 Epoch: 2 [Valid][sagging][2/3] ---- >  loss: nan, Correlation: nan
+2025-09-04 12:56:49,528 Epoch: 3 [Train][sagging][106/107] ---- >  loss: nan
+2025-09-04 12:56:51,567 Epoch: 3 [Valid][Lr: 0.005000][Early Stop: 3/50][sagging] micro Precision: 43.01%, micro F1: 0.4301
+2025-09-04 12:56:51,569 Epoch: 3 [Valid][sagging][2/3] ---- >  loss: nan, Correlation: nan
+2025-09-04 13:04:55,113 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 3, 'pigmentation': 3, 'pore': 2, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=4, reset=False, best_loss={'dryness': 1.5912, 'pigmentation': 1.5665, 'pore': 1.3954, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 13:04:55,119 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 13:07:00,550 Epoch: 3 [Train][pore][214/215] ---- >  loss: 0.1642
+2025-09-04 13:07:02,792 Epoch: 3 [Valid][Lr: 0.005000][Early Stop: 1/50][pore] micro Precision: 44.13%, micro F1: 0.4413
+2025-09-04 13:07:02,793 Epoch: 3 [Valid][pore][5/6] ---- >  loss: 1.5837, Correlation: 0.34
+2025-09-04 13:16:14,312 Namespace(name='none', equ=[1], stop_early=50, mode='class', output_dir='checkpoint/main', epoch=3, res=256, gamma=2, load_epoch={'dryness': 3, 'pigmentation': 3, 'pore': 2, 'sagging': 0, 'wrinkle': 0}, lr=0.005, batch_size=32, num_workers=4, reset=False, best_loss={'dryness': 1.5912, 'pigmentation': 1.5665, 'pore': 1.3954, 'sagging': inf, 'wrinkle': inf}, save_img='checkpoint/main/class/none/save_img', pred_path='checkpoint/main/class/none/prediction')
+2025-09-04 13:16:14,316 Command Line: tool/main.py --epoch 3 --mode both
+2025-09-04 13:18:33,418 Epoch: 3 [Train][pore][214/215] ---- >  loss: 0.1642
+2025-09-04 13:18:36,970 Epoch: 3 [Valid][Lr: 0.005000][Early Stop: 1/50][pore] micro Precision: 44.13%, micro F1: 0.4413
+2025-09-04 13:18:36,971 Epoch: 3 [Valid][pore][5/6] ---- >  loss: 1.5837, Correlation: 0.34
