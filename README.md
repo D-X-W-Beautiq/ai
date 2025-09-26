@@ -3,6 +3,7 @@
 AI 서버와 백엔드 서버 연동을 위한 AI 서비스 모듈입니다.  
 0926 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
 
+
 ## Installation
 ```python
 pip install -r requirements.txt
@@ -19,6 +20,7 @@ project_root/
 ├── requirements.txt
 └── README.md
 ```
+
 
 ## Project Structure
 ```bash
@@ -74,6 +76,7 @@ project_root/
 └── README.md                       # 실행법/구조 설명
 ```
 
+
 ## Module: NIA (Skin Analysis)
 #### Usage Example
 ```python
@@ -89,6 +92,7 @@ request = {"image_base64": image_base64, "crop_face": True}
 result = run_inference(request)
 print(result)
 ```
+
 
 #### Workflow
 - Base64 → PIL 변환 → 얼굴 크롭 (MediaPipe) → 256x256 정규화
@@ -109,6 +113,7 @@ print(result)
     - pigmentation > 250 → 주의
     - pore > 1800 → 주의
 
+
 ## Module: LLM Feedback
 #### Environment Variable
 ```bash
@@ -121,6 +126,7 @@ from app.service.feedback_service import run_inference
 req = {"predictions_json_path": "data/predictions.json"}
 print(run_inference(req))
 ```
+
 
 ## Module: Product Recommendation
 #### API Key
@@ -151,6 +157,7 @@ result = run_inference(request)
 - needs/category는 영문 전달
 - 제품 수만큼 LLM 호출 → 호출 비용 고려
 
+
 ## Pipeline Flow (NIA → Feedback → Product)
 #### Example
 ```python
@@ -165,6 +172,7 @@ from app.service.product_service import run_inference as product_inference
 3. BE팀 → AI서버: Feedback 요청
 4. BE팀 DB조회/필터링 후 → AI서버: Product Reason 요청
 5. 최종 결과 사용자에게 전달
+
 
 ## Module: Style Recommendation
 ```bash
@@ -184,6 +192,7 @@ request = {
 result = run_inference(request, "data/style-recommendation")
 print(result)
 ```
+
 
 ## Module: Customization
 ```bash
