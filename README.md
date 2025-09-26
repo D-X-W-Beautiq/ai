@@ -175,9 +175,6 @@ from app.service.product_service import run_inference as product_inference
 
 
 ## Module: Style Recommendation
-```bash
-pip install -r requirements_style.txt
-```
 ```python
 import base64
 from app.service.style_service import run_inference
@@ -195,9 +192,6 @@ print(result)
 
 
 ## Module: Customization
-```bash
-pip install -r requirements_customization.txt
-```
 ```python
 import sys, base64
 sys.path.insert(0, "/content/drive/MyDrive")
