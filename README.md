@@ -64,14 +64,14 @@ project_root/
 │   ├── inference.jpg
 │   └── predictions.json
 │
-├── requirements_parts/             # 모듈별 requirements (팀원 제출용)
+├── requirements_parts/             # 모듈별 requirements 
 │   ├── requirements_customization.txt
 │   ├── requirements_feedback.txt    
 │   ├── requirements_nia.txt    
 │   ├── requirements_product.txt    
 │   └── requirements_style.txt       
 │
-├── requirements.txt                # 통합 requirements (팀장이 정리)
+├── requirements.txt                # 통합 requirements 
 ├── Dockerfile                      # (선택) 배포용 컨테이너 환경
 └── README.md                       # 실행법/구조 설명
 ```
