@@ -1,7 +1,8 @@
-# AI-BE Project (0926 Version)
+# AI-BE Project (1005 Version)
 
 AI 서버와 백엔드 서버 연동을 위한 AI 서비스 모듈입니다.  
-0926 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
+1005 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
+변경된 파일: nia_service.py, product_service.py 
 
 
 ## Installation
@@ -80,39 +81,35 @@ project_root/
 ## Module: NIA (Skin Analysis)
 #### Usage Example
 ```python
-import sys, base64
-sys.path.insert(0, "/content/drive/MyDrive")  # 프로젝트 루트로 수정
-
+import base64
 from app.service.nia_service import run_inference
 
+# 이미지 파일을 Base64로 인코딩
 with open("얼굴이미지.jpg", "rb") as f:
-    image_base64 = base64.b64encode(f.read()).decode()
+  image_base64 = base64.b64encode(f.read()).decode()
 
-request = {"image_base64": image_base64, "crop_face": True}
+request = {
+  "image_base64": image_base64
+}
 result = run_inference(request)
 print(result)
 ```
 
-
 #### Workflow
-- Base64 → PIL 변환 → 얼굴 크롭 (MediaPipe) → 256x256 정규화
+- Base64 → PIL 변환
+- 얼굴 크롭 (MediaPipe, 기본 활성화)
+- 256x256 정규화
 - Classification (5개) + Regression (5개) 모델 추론
-- 결과 JSON 반환
+- 0~100 점수로 정규화 (높을수록 좋은 상태)
+- 결과 JSON 반환 및 data/predictions.json 저장
 
 #### Notes
 - 체크포인트 경로: checkpoints/nia
 - 첫 호출 시 모델 로딩 시간 있음 (캐시 후 빠름)
-- Regression 결과 음수 가능성 → 후처리 필요
+- 모든 점수는 0~100으로 정규화됨 (높을수록 좋음)
 
 #### Interpretation
-- Classification: 숫자 ↑ = 상태 나쁨
-- Regression:
-    - moisture < 70 → 부족
-    - elasticity_R2 < 0.7 → 부족
-    - wrinkle_Ra > 30 → 주의
-    - pigmentation > 250 → 주의
-    - pore > 1800 → 주의
-
+- 점수가 낮을수록 관리 필요한 것
 
 ## Module: LLM Feedback
 #### Environment Variable
@@ -131,31 +128,67 @@ print(run_inference(req))
 ## Module: Product Recommendation
 #### API Key
 ```python
-# product_service.py
-GEMINI_API_KEY = ""  # 실제 키 또는 환경 변수 사용
+import os
+os.environ["GEMINI_API_KEY"] = "your-api-key-here"
 ```
 
 #### Usage Example
 ```python
-import sys
-sys.path.insert(0, "/content/drive/MyDrive")
-
+import os
 from app.service.product_service import run_inference
 
+# Gemini API 키 설정
+os.environ["GEMINI_API_KEY"] = "your-api-key-here"
+
 request = {
-    "predictions": {...},   # predictions.json 내용
-    "needs": ["moisture", "pore"],
-    "filtered_products": [...],
-    "locale": "ko-KR"
+  "skin_analysis": {
+      "dryness": 55,
+      "pigmentation": 65,
+      "pore": 50,
+      "sagging": 70,
+      "wrinkle": 45,
+      "pigmentation_reg": 68,
+      "moisture_reg": 60,
+      "elasticity_reg": 72,
+      "wrinkle_reg": 48,
+      "pore_reg": 52
+  },
+  "recommended_categories": ["moisture", "wrinkle", "pore"],
+  "filtered_products": [
+      {
+          "product_id": "P001",
+          "product_name": "하이드레이팅 세럼",
+          "brand": "라로슈포제",
+          "category": "moisture",
+          "price": 35000,
+          "review_score": 4.5,
+          "review_count": 1234,
+          "ingredients": ["히알루론산", "글리세린", "세라마이드"]
+      }
+  ],
+  "locale": "ko-KR"
 }
+
 result = run_inference(request)
+print(result)
 ```
 
 #### Notes
-- Gemini API 키 필수
-- predictions.json 필요
-- needs/category는 영문 전달
-- 제품 수만큼 LLM 호출 → 호출 비용 고려
+- Gemini API 키 필수 (환경변수로 설정)
+- recommended_categories는 영문 전달 ("moisture", "elasticity",
+"wrinkle", "pigmentation", "pore")
+- 개별 제품 처리 실패 시에도 에러 메시지를 reason에 포함하여 반환
+- 재시도 로직: API 호출 실패 시 최대 3회 재시도
+- 타임아웃: 30초
+    
+#### 제품 추천 기준
+백엔드는 아래 기준으로 recommended_categories를 결정:
+
+- moisture_reg < 65 → "수분" 추천
+- elasticity_reg < 60 → "탄력" 추천
+- wrinkle_reg < 50 → "주름" 추천
+- pigmentation_reg < 70 → "색소침착" 추천
+- pore_reg < 55 → "모공" 추천
 
 
 ## Pipeline Flow (NIA → Feedback → Product)
