@@ -113,8 +113,7 @@ print(result)
     - pigmentation > 250 → 주의
     - pore > 1800 → 주의
 
-#### 
-  주의사항:
+#### 주의사항
   - Python 버전: 3.8 ~ 3.12 (mediapipe 호환성)
   - Python 3.13은 지원 안 됨
 
