@@ -3,94 +3,97 @@ import json
 import os
 from pathlib import Path
 
-# Gemini API 설정
-GEMINI_API_KEY = ""  # 실제 키로 교체 또는 환경 변수 사용
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.0-flash-exp")
+def _get_model():
+    """Gemini 모델 인스턴스 반환 (런타임 검증)"""
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel("gemini-2.0-flash-exp")
 
 def run_inference(request: dict) -> dict:
-    """
-    제품별 추천 이유 생성
-    
-    Args:
-        request: {
-            "predictions": {...},           # NIA 분석 결과
-            "needs": ["moisture", "pore"],  # 부족한 카테고리 (영문)
-            "filtered_products": [          # 백엔드에서 필터링된 제품들
-                {
-                    "product_id": "string",
-                    "product_name": "string",
-                    "brand": "string",
-                    "category": "string",
-                    "price": "integer",
-                    "review_score": "float",
-                    "review_count": "integer",
-                    "ingredients": ["string"]
-                }
-            ],
-            "locale": "string"
-        }
-    
-    Returns:
-        {
-            "status": "success",
-            "recommendations": [
-                {
-                    "product_id": "string",
-                    "reason": "string"
-                }
-            ]
-        }
-    """
     try:
         # 입력 검증
-        if "predictions" not in request:
-            raise ValueError("Missing required field: predictions")
-        if "needs" not in request:
-            raise ValueError("Missing required field: needs")
+        if "skin_analysis" not in request:
+            raise ValueError("Missing required field: skin_analysis")
+        if "recommended_categories" not in request:
+            raise ValueError("Missing required field: recommended_categories")
         if "filtered_products" not in request:
             raise ValueError("Missing required field: filtered_products")
-        
-        predictions = request["predictions"]
-        needs = request["needs"]
+
+        skin_analysis = request["skin_analysis"]
+        recommended_categories = request["recommended_categories"]
         filtered_products = request["filtered_products"]
         locale = request.get("locale", "ko-KR")
-        
+
         recommendations = []
-        
+
+        # 모델 가져오기
+        model = _get_model()
+
         # 각 제품별로 추천 이유 생성
         for product in filtered_products:
-            # 프롬프트 생성
-            prompt = generate_recommendation_prompt(
-                predictions, 
-                needs, 
-                product, 
-                locale
-            )
-            
-            # Gemini API 호출
-            response = model.generate_content(prompt)
-            reason = response.text.strip()
-            
-            recommendations.append({
-                "product_id": product["product_id"],
-                "reason": reason
-            })
-        
+            try:
+                # 프롬프트 생성
+                prompt = generate_recommendation_prompt(
+                    skin_analysis,
+                    recommended_categories,
+                    product,
+                    locale
+                )
+
+                # Gemini API 호출 (재시도 로직 포함)
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        response = model.generate_content(
+                            prompt,
+                            generation_config={
+                                "temperature": 0.7,
+                                "max_output_tokens": 500,
+                            },
+                            request_options={"timeout": 30}
+                        )
+
+                        # 응답 검증
+                        if not response or not response.text:
+                            raise ValueError("Empty response from Gemini API")
+
+                        reason = response.text.strip()
+                        break
+
+                    except Exception as api_error:
+                        if attempt == max_retries - 1:
+                            raise api_error
+                        continue
+
+                recommendations.append({
+                    "product_id": product["product_id"],
+                    "reason": reason
+                })
+
+            except Exception as product_error:
+                # 개별 제품 처리 실패 시 기본 메시지
+                recommendations.append({
+                    "product_id": product["product_id"],
+                    "reason": f"추천 이유 생성 중 오류가 발생했습니다: {str(product_error)}"
+                })
+
         return {
             "status": "success",
             "recommendations": recommendations
         }
-        
+
     except Exception as e:
         return {
             "status": "error",
             "message": str(e),
-            "error_code": "LLM_GENERATION_FAILED" 
+            "error_code": "LLM_GENERATION_FAILED"
         }
-def generate_recommendation_prompt(predictions, needs, product, locale):
+
+def generate_recommendation_prompt(skin_analysis, recommended_categories, product, locale):
     """추천 이유 생성을 위한 프롬프트 작성"""
-    
+
     # 카테고리 매핑
     category_map = {
         "moisture": "수분",
@@ -99,42 +102,59 @@ def generate_recommendation_prompt(predictions, needs, product, locale):
         "pigmentation": "색소침착",
         "pore": "모공"
     }
-    
+
+    # 카테고리별 기준값 (BE와 동일)
+    thresholds = {
+        'moisture': 65,
+        'pigmentation': 70,
+        'elasticity': 60,
+        'wrinkle': 50,
+        'pore': 55
+    }
+
     # 부족한 영역 정보 추출
     concern_details = []
-    
-    for need in needs:
-        korean_name = category_map.get(need, need)
-        
-        if need == "moisture":
-            avg_moisture = (
-                predictions.get("forehead_moisture", 0) +
-                predictions.get("cheek_moisture", 0) +
-                predictions.get("chin_moisture", 0)
-            ) / 3
-            concern_details.append(f"{korean_name} (평균 {avg_moisture:.0f}점, 기준 70점 미만)")
-        
-        elif need == "elasticity":
-            avg_elasticity = (
-                predictions.get("forehead_elasticity_R2", 0) +
-                predictions.get("cheek_elasticity_R2", 0) +
-                predictions.get("chin_elasticity_R2", 0)
-            ) / 3
-            concern_details.append(f"{korean_name} (평균 {avg_elasticity:.2f}, 기준 0.7 미만)")
-        
-        elif need == "wrinkle":
-            wrinkle_value = predictions.get("perocular_wrinkle_Ra", 0)
-            concern_details.append(f"{korean_name} (눈가 주름 {wrinkle_value}, 기준 30 이상)")
-        
-        elif need == "pigmentation":
-            forehead_pig = predictions.get("forehead_pigmentation", 0)
-            cheek_pig = predictions.get("cheek_pigmentation", 0)
-            concern_details.append(f"{korean_name} (이마 {forehead_pig}, 볼 {cheek_pig}, 기준 250 이상)")
-        
-        elif need == "pore":
-            pore_value = predictions.get("cheek_pore", 0)
-            concern_details.append(f"{korean_name} (볼 모공 {pore_value}, 기준 1800 이상)")
-    
+
+    for category in recommended_categories:
+        korean_name = category_map.get(category, category)
+        threshold = thresholds.get(category, 70)
+
+        # BE와 동일한 로직으로 대표 점수 계산
+        if category == "moisture":
+            score = min(
+                skin_analysis.get("dryness", 100),
+                skin_analysis.get("moisture_reg", 100)
+            )
+            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
+
+        elif category == "elasticity":
+            score = min(
+                skin_analysis.get("sagging", 100),
+                skin_analysis.get("elasticity_reg", 100)
+            )
+            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
+
+        elif category == "wrinkle":
+            score = min(
+                skin_analysis.get("wrinkle", 100),
+                skin_analysis.get("wrinkle_reg", 100)
+            )
+            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
+
+        elif category == "pigmentation":
+            score = min(
+                skin_analysis.get("pigmentation", 100),
+                skin_analysis.get("pigmentation_reg", 100)
+            )
+            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
+
+        elif category == "pore":
+            score = min(
+                skin_analysis.get("pore", 100),
+                skin_analysis.get("pore_reg", 100)
+            )
+            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
+
     # 프롬프트 작성
     if locale == "ko-KR":
         prompt = f"""
@@ -150,7 +170,7 @@ def generate_recommendation_prompt(predictions, needs, product, locale):
 - 가격: {product['price']:,}원
 - 리뷰 점수: {product['review_score']}점
 - 리뷰 수: {product['review_count']:,}건
-- 주요 성분: {', '.join(product.get('ingredients', []))}
+- 주요 성분: {', '.join(product.get('ingredients', [])) if product.get('ingredients') else '정보 없음'}
 
 요구사항:
 1. 피부 분석 결과를 바탕으로 왜 이 제품이 적합한지 구체적으로 설명
@@ -175,7 +195,7 @@ You are a skin care expert. Write a product recommendation reason based on the s
 - Price: {product['price']:,} KRW
 - Review Score: {product['review_score']}
 - Review Count: {product['review_count']:,}
-- Key Ingredients: {', '.join(product.get('ingredients', []))}
+- Key Ingredients: {', '.join(product.get('ingredients', [])) if product.get('ingredients') else 'Not available'}
 
 Requirements:
 1. Explain specifically why this product is suitable based on skin analysis
@@ -186,5 +206,5 @@ Requirements:
 
 Recommendation Reason:
 """
-    
+
     return prompt
