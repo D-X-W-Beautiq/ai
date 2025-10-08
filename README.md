@@ -135,6 +135,13 @@ print(result)
 export GEMINI_API_KEY="여기에_키"
 export FEEDBACK_PREDICTIONS_PATH="predictions.json_경로입력"   # 선택
 ```
+```bash
+코랩에서 진행시
+import os
+# 환경 변수 등록 (세션 전체에서 유효)
+os.environ["GEMINI_API_KEY"] = "AIzaSyDPgO81OgisItM5ZUDquSIghkYABxrAlQw"
+os.environ["FEEDBACK_PREDICTIONS_PATH"] = "/content/data/predictions.json"
+```
 #### Usage Example
 ```python
 from app.service.feedback_service import run_inference
