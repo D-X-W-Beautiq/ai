@@ -143,12 +143,8 @@ req = {}
 print(run_inference(req))
 ```
 #### Notes
-- Gemini API 키 필수 (환경변수로 설정)
-- recommended_categories는 영문 전달 ("moisture", "elasticity",
-"wrinkle", "pigmentation", "pore")
-- 개별 제품 처리 실패 시에도 에러 메시지를 reason에 포함하여 반환
-- 재시도 로직: API 호출 실패 시 최대 3회 재시도
-- 타임아웃: 30초
+- 고정 설명문 + 점수 JSON → LLM 입력 생성
+- Gemini 모델 1회 로드 → 피드백 문장 생성
 
 ## Module: Product Recommendation
 #### API Key
