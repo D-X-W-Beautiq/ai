@@ -1,0 +1,6 @@
+# LLM 피드백 모듈 전용 의존성
+google-generativeai>=0.8.3
+#python-dotenv>=1.0.1    # (선택) 로컬 개발 시 .env 통해 GEMINI_API_KEY 주입에 사용
+
+# 아래는 런타임 품질 개선용(선택)
+#requests>=2.31.0
