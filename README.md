@@ -135,8 +135,8 @@ print(result)
 export GEMINI_API_KEY="여기에_키"
 export FEEDBACK_PREDICTIONS_PATH="data/predictions.json_경로입력"   # 선택
 ```
+##### 코랩에서 진행시
 ```bash
-코랩에서 진행시
 import os
 # 환경 변수 등록 (세션 전체에서 유효)
 os.environ["GEMINI_API_KEY"] = "여기에_키"
