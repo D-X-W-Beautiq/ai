@@ -15,7 +15,8 @@ pip install -r requirements.txt
 배치 후 최종 구조 예시:
 ```bash
 project_root/
-├── app/
+├── service/
+├── model_manager/
 ├── checkpoints/         # from Google Drive
 ├── data/                # from Google Drive
 ├── requirements.txt
@@ -26,53 +27,70 @@ project_root/
 ## Project Structure
 ```bash
 project_root/
-├── app/                         
-│   ├── main.py                     # FastAPI 서버 진입점 (BE팀 관리)
-│   │
-│   ├── api/                        # API 엔드포인트 정의 (BE팀)
-│   │   ├── nia.py                  # 피부 분석 (1-1)
-│   │   ├── feedback.py             # 피부 피드백 (1-2)
-│   │   ├── product.py              # 제품 추천 (1-3)
-│   │   ├── style.py                # 스타일 추천 (2-1)
-│   │   ├── makeup.py               # 메이크업 시뮬레이션 (2-2, 미완성)
-│   │   └── customization.py        # 커스터마이징 (3-1)
-│   │
-│   ├── service/                    # 추론 로직 (AI팀)
-│   │   ├── nia_service.py
-│   │   ├── feedback_service.py
-│   │   ├── product_service.py
-│   │   ├── style_service.py
-│   │   ├── makeup_service.py       # 미완
-│   │   └── customization_service.py
-│   │
-│   └── model_manager/              # 모델 로딩 및 캐시 관리 (AI팀)
-│       ├── nia_manager.py
-│       ├── feedback_manager.py
-│       ├── product_manager.py
-│       ├── clip_manager.py        
-│       ├── makeup_manager.py       # 미완성 
-│       └── customization_manager.py
+├── main.py                         # FastAPI 서버 진입점 (BE팀 관리)
 │
-├── checkpoints/                    # 학습된 모델 가중치 (AI팀, Drive 제공)
-│   ├── nia/...
+├── api/                            # API 엔드포인트 정의 (BE팀)
+│   ├── nia.py                      # 피부 분석 (1-1)
+│   ├── feedback.py                 # 피부 피드백 (1-2)
+│   ├── product.py                  # 제품 추천 (1-3)
+│   ├── style.py                    # 스타일 추천 (2-1)
+│   ├── makeup.py                   # 메이크업 시뮬레이션 (2-2, 미완성)
+│   └── customization.py            # 커스터마이징 (3-1)
+│
+├── service/                        # 추론 로직 (AI팀)
+│   ├── nia_service.py
+│   ├── feedback_service.py
+│   ├── product_service.py
+│   ├── style_service.py
+│   ├── makeup_service.py           # 미완성
+│   └── customization_service.py
+│
+├── model_manager/                  # 모델 로딩 및 캐시 관리 (AI팀)
+│   ├── nia_manager.py
+│   ├── feedback_manager.py
+│   ├── product_manager.py
+│   ├── clip_manager.py
+│   ├── makeup_manager.py           # 미완성
+│   └── customization_manager.py
+│
+├── checkpoints/                    # 학습된 모델 가중치 (AI팀)
+│   ├── nia/
+│   │   ├── class/
+│   │   │   ├── dryness/state_dict.bin
+│   │   │   ├── pigmentation/state_dict.bin
+│   │   │   ├── pore/state_dict.bin
+│   │   │   ├── sagging/state_dict.bin
+│   │   │   └── wrinkle/state_dict.bin
+│   │   └── regression/
+│   │       ├── elasticity_R2/state_dict.bin
+│   │       ├── moisture/state_dict.bin
+│   │       ├── pigmentation/state_dict.bin
+│   │       ├── pore/state_dict.bin
+│   │       └── wrinkle_Ra/state_dict.bin
+│   │
 │   ├── customization/customization.pt
 │   ├── style/clip-vit-base.pt
 │   └── makeup/_.pt                 # 미완성
 │
-├── data/                           # 정적 자원 (AI팀, Drive 제공)
-│   ├── product.xlsx
-│   ├── style-recommendation/...
-│   ├── inference.jpg
-│   └── predictions.json
+├── data/                           # 정적 자원 (AI팀)
+│   ├── product.xlsx                # 제품 DB
+│   ├── style-recommendation/
+│   │   ├── celeb/
+│   │   ├── makeup_captions_mood_detailed.json
+│   │   ├── makeup_captions_mood_final.json
+│   │   ├── makeup_captions_tone_detailed.json
+│   │   └── makeup_captions_tone_final.json
+│   ├── inference.jpg               # nia 인퍼런스용 샘플 이미지
+│   └── predictions.json            # nia 분석 결과 (실행 시 생성됨)
 │
-├── requirements_parts/             # 모듈별 requirements 
+├── requirements_org/               # 모듈별 requirements
 │   ├── requirements_customization.txt
-│   ├── requirements_feedback.txt    
-│   ├── requirements_nia.txt    
-│   ├── requirements_product.txt    
-│   └── requirements_style.txt       
+│   ├── requirements_feedback.txt
+│   ├── requirements_nia.txt
+│   ├── requirements_product.txt
+│   └── requirements_style.txt
 │
-├── requirements.txt                # 통합 requirements 
+├── requirements.txt                # 통합 requirements
 ├── Dockerfile                      # (선택) 배포용 컨테이너 환경
 └── README.md                       # 실행법/구조 설명
 ```
