@@ -1,9 +1,7 @@
-# AI-BE Project (1005 Version)
+# AI-BE Project (1009 Version)
 
 AI 서버와 백엔드 서버 연동을 위한 AI 서비스 모듈입니다.  
-1005 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
-변경된 파일: nia_service.py, product_service.py 
-
+1009 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
 
 ## Installation
 ```python
@@ -42,7 +40,7 @@ project_root/
 │   ├── feedback_service.py
 │   ├── product_service.py
 │   ├── style_service.py
-│   ├── makeup_service.py           # 미완성
+│   ├── makeup_service.py           
 │   └── customization_service.py
 │
 ├── model_manager/                  # 모델 로딩 및 캐시 관리 (AI팀)
@@ -50,7 +48,7 @@ project_root/
 │   ├── feedback_manager.py
 │   ├── product_manager.py
 │   ├── clip_manager.py
-│   ├── makeup_manager.py           # 미완성
+│   ├── makeup_manager.py          
 │   └── customization_manager.py
 │
 ├── checkpoints/                    # 학습된 모델 가중치 (AI팀)
@@ -70,24 +68,32 @@ project_root/
 │   │
 │   ├── customization/customization.pt
 │   ├── style/clip-vit-base.pt
-│   └── makeup/_.pt                 # 미완성
+│   └── makeup/                     
+│       ├── pytorch_model.bin        
+│       ├── pytorch_model_1.bin  
+│       └── pytorch_model_2.bin      
 │
-├── data/                           # 정적 자원 (AI팀)
-│   ├── product.xlsx                # 제품 DB
-│   ├── style-recommendation/
-│   │   ├── celeb/
-│   │   ├── makeup_captions_mood_detailed.json
-│   │   ├── makeup_captions_mood_final.json
-│   │   ├── makeup_captions_tone_detailed.json
-│   │   └── makeup_captions_tone_final.json
-│   ├── inference.jpg               # nia 인퍼런스용 샘플 이미지
-│   └── predictions.json            # nia 분석 결과 (실행 시 생성됨)
+├── data/
+│   ├── product.xlsx
+│   ├── style-recommendation/...
+│   ├── inference.jpg
+│   ├── predictions.json             # nia 실행 시 생성
+│   ├── output/                      # makeup 결과 이미지 저장 폴더 (실행 시 자동 생성)
+│   └── test_imgs_makeup/            # 로컬 테스트용
 │
+├── libs/                            # 내부 공용 모듈
+│   ├── __init__.py                 
+│   ├── pipeline_sd15.py
+│   └── detail_encoder/
+│       ├── __init__.py           
+│       └── encoder_plus.py
+│ 
 ├── requirements_org/               # 모듈별 requirements
 │   ├── requirements_customization.txt
 │   ├── requirements_feedback.txt
 │   ├── requirements_nia.txt
 │   ├── requirements_product.txt
+│   ├── requirements_makeup.txt
 │   └── requirements_style.txt
 │
 ├── requirements.txt                # 통합 requirements
@@ -249,6 +255,32 @@ request = {
 }
 result = run_inference(request, "data/style-recommendation")
 print(result)
+```
+
+## Module: Makeup Simulation 
+```python
+import base64
+from service.makeup_service import run_inference
+
+def to_b64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
+if __name__ == "__main__":
+    id_path  = "data/test_imgs_makeup/id/1.jpg"
+    ref_path = "data/test_imgs_makeup/makeup/1.jpg"
+
+    req = {
+        "source_image_base64": to_b64(id_path),
+        "style_image_base64":  to_b64(ref_path),
+
+        # (선택) 디스크 저장
+        "save_to_disk": True,
+        "output_dir": "data/output",
+        "id_path": id_path,     
+        "ref_path": ref_path    
+    }
+    print(run_inference(req))
 ```
 
 
