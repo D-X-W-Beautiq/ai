@@ -32,7 +32,7 @@ project_root/
 │   ├── feedback.py                 # 피부 피드백 (1-2)
 │   ├── product.py                  # 제품 추천 (1-3)
 │   ├── style.py                    # 스타일 추천 (2-1)
-│   ├── makeup.py                   # 메이크업 시뮬레이션 (2-2, 미완성)
+│   ├── makeup.py                   # 메이크업 시뮬레이션 (2-2)
 │   └── customization.py            # 커스터마이징 (3-1)
 │
 ├── service/                        # 추론 로직 (AI팀)
