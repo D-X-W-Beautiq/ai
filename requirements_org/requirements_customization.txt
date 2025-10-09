@@ -1,0 +1,9 @@
+torch
+torchvision
+transformers
+opencv-python
+mediapipe
+pandas
+Pillow
+matplotlib
+numpy
