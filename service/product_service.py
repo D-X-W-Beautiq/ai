@@ -1,15 +1,33 @@
 import google.generativeai as genai
 import json
 import os
+import threading
 from pathlib import Path
 
+# 전역 변수로 모델 캐싱 (싱글톤 패턴)
+_product_model = None
+_model_lock = threading.Lock()
+
 def _get_model():
-    """Gemini 모델 인스턴스 반환 (런타임 검증)"""
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.0-flash-exp")
+    """Gemini 모델 인스턴스 반환 (런타임 검증, 한 번만 로딩)"""
+    global _product_model
+
+    with _model_lock:
+        # 이미 로드된 모델이 있으면 재사용
+        if _product_model is not None:
+            return _product_model
+
+        # 환경변수 검증
+        api_key = os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
+
+        # 모델 한 번만 생성 및 캐싱
+        genai.configure(api_key=api_key)
+        _product_model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        print("✓ Loaded Gemini model: gemini-2.0-flash-exp")
+
+        return _product_model
 
 def run_inference(request: dict) -> dict:
     try:
