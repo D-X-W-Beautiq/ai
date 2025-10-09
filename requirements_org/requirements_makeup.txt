@@ -1,0 +1,8 @@
+torch
+torchvision
+diffusers>=0.30.0
+transformers>=4.44.0
+accelerate
+safetensors
+Pillow>=10.0.0
+numpy
