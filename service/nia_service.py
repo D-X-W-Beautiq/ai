@@ -8,9 +8,12 @@ from io import BytesIO
 import mediapipe as mp
 import json
 import os
+import sys
 from pathlib import Path
 
-from app.model_manager.nia_manager import (
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from model_manager.nia_manager import (
     load_classification_models,
     load_regression_models,
     get_device
@@ -187,8 +190,8 @@ def run_inference(request: dict) -> dict:
             "predictions": predictions
         }
 
-        # JSON 파일로 저장 (상대 경로: app/service → data/)
-        current_dir = Path(__file__).parent.parent.parent  # app/service → project_root
+        # JSON 파일로 저장 (상대 경로: ai/service → ai/)
+        current_dir = Path(__file__).parent.parent  # ai/service → ai/
         data_dir = current_dir / "data"
         data_dir.mkdir(exist_ok=True)
         output_path = data_dir / "predictions.json"
