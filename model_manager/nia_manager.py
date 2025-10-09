@@ -11,7 +11,7 @@ _device = None
 def get_checkpoint_path():
     """체크포인트 기본 경로 반환 (상대경로)"""
     # 현재 파일 기준 상대 경로
-    current_dir = Path(__file__).parent.parent.parent  # app/model_manager -> project_root
+    current_dir = Path(__file__).parent.parent  # ai/model_manager -> ai/
     checkpoint_dir = current_dir / "checkpoints" / "nia"
     return str(checkpoint_dir)
 

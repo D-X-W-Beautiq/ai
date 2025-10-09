@@ -1,15 +1,33 @@
 import google.generativeai as genai
 import json
 import os
+import threading
 from pathlib import Path
 
+# 전역 변수로 모델 캐싱 (싱글톤 패턴)
+_product_model = None
+_model_lock = threading.Lock()
+
 def _get_model():
-    """Gemini 모델 인스턴스 반환 (런타임 검증)"""
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.0-flash-exp")
+    """Gemini 모델 인스턴스 반환 (런타임 검증, 한 번만 로딩)"""
+    global _product_model
+
+    with _model_lock:
+        # 이미 로드된 모델이 있으면 재사용
+        if _product_model is not None:
+            return _product_model
+
+        # 환경변수 검증
+        api_key = os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
+
+        # 모델 한 번만 생성 및 캐싱
+        genai.configure(api_key=api_key)
+        _product_model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        print("✓ Loaded Gemini model: gemini-2.0-flash-exp")
+
+        return _product_model
 
 def run_inference(request: dict) -> dict:
     try:
@@ -112,6 +130,15 @@ def generate_recommendation_prompt(skin_analysis, recommended_categories, produc
         'pore': 55
     }
 
+    # 카테고리별 점수 계산 로직 정의 -> 프롬프트 생성용 
+    category_score_calculators = {
+        'moisture': lambda s: min(s.get("dryness", 100), s.get("moisture_reg", 100)),
+        'elasticity': lambda s: min(s.get("sagging", 100), s.get("elasticity_reg", 100)),
+        'wrinkle': lambda s: min(s.get("wrinkle", 100), s.get("wrinkle_reg", 100)),
+        'pigmentation': lambda s: min(s.get("pigmentation", 100), s.get("pigmentation_reg", 100)),
+        'pore': lambda s: min(s.get("pore", 100), s.get("pore_reg", 100))
+    }
+
     # 부족한 영역 정보 추출
     concern_details = []
 
@@ -119,40 +146,10 @@ def generate_recommendation_prompt(skin_analysis, recommended_categories, produc
         korean_name = category_map.get(category, category)
         threshold = thresholds.get(category, 70)
 
-        # BE와 동일한 로직으로 대표 점수 계산
-        if category == "moisture":
-            score = min(
-                skin_analysis.get("dryness", 100),
-                skin_analysis.get("moisture_reg", 100)
-            )
-            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
-
-        elif category == "elasticity":
-            score = min(
-                skin_analysis.get("sagging", 100),
-                skin_analysis.get("elasticity_reg", 100)
-            )
-            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
-
-        elif category == "wrinkle":
-            score = min(
-                skin_analysis.get("wrinkle", 100),
-                skin_analysis.get("wrinkle_reg", 100)
-            )
-            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
-
-        elif category == "pigmentation":
-            score = min(
-                skin_analysis.get("pigmentation", 100),
-                skin_analysis.get("pigmentation_reg", 100)
-            )
-            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
-
-        elif category == "pore":
-            score = min(
-                skin_analysis.get("pore", 100),
-                skin_analysis.get("pore_reg", 100)
-            )
+        # 대표 점수 계산
+        calculator = category_score_calculators.get(category)
+        if calculator:
+            score = calculator(skin_analysis)
             concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
 
     # 프롬프트 작성
