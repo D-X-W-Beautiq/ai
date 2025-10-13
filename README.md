@@ -13,6 +13,7 @@ pip install -r requirements.txt
 배치 후 최종 구조 예시:
 ```bash
 project_root/
+├── libs/
 ├── service/
 ├── model_manager/
 ├── checkpoints/         # from Google Drive
