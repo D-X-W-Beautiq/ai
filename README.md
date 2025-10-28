@@ -1,7 +1,7 @@
-# AI-BE Project (1009 Version)
+# AI-BE Project (1028 Version)
 
 AI 서버와 백엔드 서버 연동을 위한 AI 서비스 모듈입니다.  
-1009 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
+1028 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
 
 ## Installation
 ```python
@@ -16,6 +16,7 @@ project_root/
 ├── libs/
 ├── service/
 ├── model_manager/
+├── modelS/
 ├── checkpoints/         # from Google Drive
 ├── data/                # from Google Drive
 ├── requirements.txt
@@ -84,7 +85,9 @@ project_root/
 │
 ├── libs/                            # 내부 공용 모듈
 │   ├── __init__.py                 
+│   ├── face_utils.py
 │   ├── pipeline_sd15.py
+│   ├── spiga_draw.py
 │   └── detail_encoder/
 │       ├── __init__.py           
 │       └── encoder_plus.py
@@ -260,28 +263,8 @@ print(result)
 
 ## Module: Makeup Simulation 
 ```python
-import base64
-from service.makeup_service import run_inference
-
-def to_b64(path):
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
-
-if __name__ == "__main__":
-    id_path  = "data/test_imgs_makeup/id/1.jpg"
-    ref_path = "data/test_imgs_makeup/makeup/1.jpg"
-
-    req = {
-        "source_image_base64": to_b64(id_path),
-        "style_image_base64":  to_b64(ref_path),
-
-        # (선택) 디스크 저장
-        "save_to_disk": True,
-        "output_dir": "data/output",
-        "id_path": id_path,     
-        "ref_path": ref_path    
-    }
-    print(run_inference(req))
+pip install -r requirements_org/requirements_makeup.txt
+python service/makeup_service.py
 ```
 
 
