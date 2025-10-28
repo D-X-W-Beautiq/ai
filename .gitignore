@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+*.log
+
+# Build & cache
+dist/
+build/
+*.cache/
+.ipynb_checkpoints/
+
+# DS/ML artifacts
+checkpoints/
+runs/
+outputs/
+wandb/
+
+# Data
+data/
+datasets/
+*.csv
+*.parquet
+*.zip
+
+# Large binaries (use LFS if 필요)
+*.ckpt
+*.pt
+*.bin
+*.safetensors
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# large artifacts
+*.pt
+*.ckpt
+*.safetensors
+weights/
+outputs/

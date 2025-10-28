@@ -1,169 +1,165 @@
 # service/makeup_service.py
-import io
-import base64
-from pathlib import Path
-from typing import Dict, Any, Optional
+"""
+메이크업 추론 서비스
+"""
 
+import os
+import sys
 import torch
 from PIL import Image
+from typing import Optional, Union, List
+
+# 프로젝트 루트를 path에 추가
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from model_manager.makeup_manager import load_model
+from libs.spiga_draw import get_draw  # 🔧 libs에서 import
+from facelib import FaceDetector 
 
 
-# ---------------- Utils ----------------
-def _b64_to_image(b64: str) -> Image.Image:
-    """base64 -> PIL.Image"""
-    try:
-        raw = base64.b64decode(b64)
-        return Image.open(io.BytesIO(raw)).convert("RGB")
-    except Exception as e:
-        raise ValueError(f"Invalid base64 image: {e}")
+# Face Detector 초기화 (글로벌)
+_FACE_DETECTOR = None
 
 
-def _image_to_b64(img: Image.Image) -> str:
-    """PIL.Image -> base64 (PNG)"""
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
+def get_face_detector():
+    """Face Detector 싱글톤"""
+    global _FACE_DETECTOR
+    if _FACE_DETECTOR is None:
+        # 루트의 models 폴더 확인
+        weight_path = "./models/mobilenet0.25_Final.pth"
+        if os.path.exists(weight_path):
+            _FACE_DETECTOR = FaceDetector(weight_path=weight_path)
+        else:
+            # 없으면 자동 다운로드
+            _FACE_DETECTOR = FaceDetector()
+    return _FACE_DETECTOR
 
 
-def _resize_square(img: Image.Image, res: Optional[int]) -> Image.Image:
-    """정사각 리사이즈(Stable Diffusion 입력 정규화용)"""
-    if not res:
-        return img
-    return img.resize((int(res), int(res)), Image.BICUBIC)
-
-
-def _stem(s: str) -> str:
-    """경로/확장자 제거한 파일명 베이스 추출(한글/공백 유지)"""
-    if not s:
-        return ""
-    s = s.replace("\\", "/").split("/")[-1]
-    if "." in s:
-        s = ".".join(s.split(".")[:-1])
-    return s.strip()
-
-
-# ---------------- Core ----------------
-def run_inference(request: Dict[str, Any]) -> Dict[str, Any]:
+def inference(
+    id_image: Union[Image.Image, str],
+    makeup_image: Union[Image.Image, str],
+    guidance_scale: float = 1.6,
+    size: int = 512,
+    num_inference_steps: int = 30,
+    seed: Optional[int] = None,
+    device: str = "cuda"
+) -> Image.Image:
     """
-    스펙(간단):
-    Request
-    {
-      "source_image_base64": "string",   # 필수 (기존 id_image_base64과 동등)
-      "style_image_base64":  "string"    # 필수 (기존 ref_image_base64과 동등)
-      // (선택) 아래 파라미터는 있으면 사용, 없으면 기본값
-      "pose_image_base64": "string",
-      "resolution": 512,
-      "steps": 30,
-      "guidance": 2.0,
-      "precision": "fp16",
-      "seed": 42,
-
-      // (선택) 디스크 저장 옵션
-      "save_to_disk": true,
-      "output_dir": "data/output",
-      "id_name": "고윤정", "ref_name": "스모키",
-      "id_path": "data/.../고윤정.jpg", "ref_path": "data/.../스모키.jpg"
-    }
-
-    Response (성공)
-    { "status": "success", "result_image_base64": "string" }
-
-    Response (실패)
-    { "status": "failed", "message": "string" }
+    메이크업 전이 추론
+    
+    Args:
+        id_image: 원본 얼굴 이미지 (PIL.Image 또는 경로)
+        makeup_image: 메이크업 참조 이미지 (PIL.Image 또는 경로)
+        guidance_scale: 가이던스 스케일
+        size: 출력 이미지 크기
+        num_inference_steps: 디노이징 스텝 수
+        seed: 랜덤 시드
+        device: 실행 디바이스
+    
+    Returns:
+        PIL.Image: 메이크업 전이된 결과 이미지
     """
+    # 이미지 로드
+    if isinstance(id_image, str):
+        id_image = Image.open(id_image).convert("RGB")
+    if isinstance(makeup_image, str):
+        makeup_image = Image.open(makeup_image).convert("RGB")
+    
+    # 리사이즈
+    id_image = id_image.resize((size, size))
+    makeup_image = makeup_image.resize((size, size))
+    
+    # 포즈 이미지 생성
+    detector = get_face_detector()
+    pose_image = get_draw(id_image, size=size)
+    
+    # 모델 로드 (캐시 사용)
+    pipeline, makeup_encoder = load_model(device=device)
+    
+    # 시드 설정
+    if seed is not None:
+        torch.manual_seed(seed)
+    
+    # 추론 실행
+    result_img = makeup_encoder.generate(
+        id_image=[id_image, pose_image],
+        makeup_image=makeup_image,
+        pipe=pipeline,
+        guidance_scale=guidance_scale,
+        num_inference_steps=num_inference_steps,
+        seed=seed
+    )
+    
+    return result_img
+
+
+def batch_inference(
+    id_images: List[Union[Image.Image, str]],
+    makeup_images: List[Union[Image.Image, str]],
+    **kwargs
+) -> List[Image.Image]:
+    """
+    배치 추론
+    """
+    if len(id_images) != len(makeup_images):
+        raise ValueError("id_images와 makeup_images의 길이가 같아야 합니다.")
+    
+    results = []
+    for id_img, makeup_img in zip(id_images, makeup_images):
+        result = inference(id_img, makeup_img, **kwargs)
+        results.append(result)
+    
+    return results
+
+
+def main():
+    """직접 실행"""
+    print("""
+╔══════════════════════════════════════════════════════════════╗
+║              Stable-Makeup Inference Service                 ║
+╚══════════════════════════════════════════════════════════════╝
+    """)
+    
+    id_input = "./data/test_imgs_makeup/id/제니.jpg"
+    makeup_ref = "./data/test_imgs_makeup/makeup/스모키.jpg"
+    output_dir = "./data/output"
+    
+    if not os.path.exists(id_input):
+        print(f"❌ Source image not found: {id_input}")
+        sys.exit(1)
+    if not os.path.exists(makeup_ref):
+        print(f"❌ Makeup reference not found: {makeup_ref}")
+        sys.exit(1)
+    
+    os.makedirs(output_dir, exist_ok=True)
+    
+    id_name = os.path.basename(id_input).split('.')[0]
+    makeup_name = os.path.basename(makeup_ref).split('.')[0]
+    output_path = os.path.join(output_dir, f"{id_name}_{makeup_name}.png")
+    
     try:
-        # ---- 0) 입력 키 호환 처리 ----
-        # 새 스펙 키 (우선)
-        src_b64 = request.get("source_image_base64")
-        sty_b64 = request.get("style_image_base64")
-
-        # 구 스펙 키 (백워드 호환)
-        if src_b64 is None and "id_image_base64" in request:
-            src_b64 = request.get("id_image_base64")
-        if sty_b64 is None and "ref_image_base64" in request:
-            sty_b64 = request.get("ref_image_base64")
-
-        if not src_b64:
-            raise ValueError("Missing 'source_image_base64'")
-        if not sty_b64:
-            raise ValueError("Missing 'style_image_base64'")
-
-        # ---- 1) 파라미터 ----
-        pretrained = request.get("pretrained", "runwayml/stable-diffusion-v1-5")
-        checkpoints_dir = request.get("checkpoints_dir", "checkpoints/makeup")
-        precision = request.get("precision", "fp16")
-        image_encoder_path = request.get("image_encoder_path", "./models/image_encoder_l")
-
-        resolution = int(request.get("resolution", 512))
-        steps = int(request.get("steps", 30))
-        guidance = float(request.get("guidance", 2.0))
-        seed = request.get("seed")
-        if seed is not None:
-            seed = int(seed)
-
-        # 디스크 저장(선택)
-        save_to_disk: bool = bool(request.get("save_to_disk", False))
-        output_dir: str = request.get("output_dir", "data/output")
-        id_name_hint: str = request.get("id_name", "")
-        ref_name_hint: str = request.get("ref_name", "")
-        id_path_hint: str = request.get("id_path", "")
-        ref_path_hint: str = request.get("ref_path", "")
-
-        # ---- 2) 모델 로드(캐시 재사용) ----
-        pipe, mk_encoder, device, autocast_device, use_amp = load_model(
-            pretrained=pretrained,
-            checkpoints_dir=checkpoints_dir,
-            precision=precision,
-            image_encoder_path=image_encoder_path,
-        )
-
-        # ---- 3) 이미지 디코딩 ----
-        id_img = _b64_to_image(src_b64)
-        ref_img = _b64_to_image(sty_b64)
-        pose_b64 = request.get("pose_image_base64")
-        pose_img = _b64_to_image(pose_b64) if pose_b64 else id_img
-
-        # 정규화
-        id_img_s = _resize_square(id_img, resolution)
-        ref_img_s = _resize_square(ref_img, resolution)
-        pose_img_s = _resize_square(pose_img, resolution)
-
-        # ---- 4) 생성 ----
-        if seed is not None:
-            torch.manual_seed(seed)
-
-        with torch.autocast(autocast_device, enabled=use_amp):
-            out = mk_encoder.generate(
-                id_image=[id_img_s, pose_img_s],
-                makeup_image=ref_img_s,
-                guidance_scale=guidance,
-                num_inference_steps=steps,
-                seed=seed,
-                pipe=pipe,
-            )
-
-        # ---- 5) 디스크 저장 (옵션) ----
-        if save_to_disk:
-            id_stem = _stem(id_name_hint or id_path_hint) or "source"
-            ref_stem = _stem(ref_name_hint or ref_path_hint) or "style"
-            fname = f"{id_stem}_{ref_stem}.png"
-            outdir = Path(output_dir)
-            outdir.mkdir(parents=True, exist_ok=True)
-            outpath = outdir / fname
-            try:
-                out.save(outpath)
-            except Exception as se:
-                # 저장 실패해도 응답은 성공으로 주고, 메시지에 힌트만 남김
-                # (진짜 실패를 실패 응답으로 바꾸고 싶으면 아래 return을 raise로 바꿔도 됨)
-                return {"status": "failed", "message": f"Failed to save result to disk: {se}"}
-
-        # ---- 6) 응답(간단 스펙) ----
-        return {
-            "status": "success",
-            "result_image_base64": _image_to_b64(out)
-        }
-
+        print(f"\n{'='*70}")
+        print(f"🎨 Makeup Transfer")
+        print(f"{'='*70}")
+        print(f"📂 Source: {id_input}")
+        print(f"📂 Makeup: {makeup_ref}")
+        print(f"⚙️  Processing...")
+        
+        result = inference(id_input, makeup_ref, guidance_scale=1.6)
+        result.save(output_path)
+        
+        print(f"✅ Saved: {output_path}")
+        print(f"{'='*70}")
+        print("\n🎉 Inference completed successfully!")
+        
     except Exception as e:
-        return {"status": "failed", "message": str(e)}
+        print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

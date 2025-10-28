@@ -1,148 +1,135 @@
 # model_manager/makeup_manager.py
+"""
+메이크업 모델 로딩 및 캐시 관리
+"""
+
 import os
-from pathlib import Path
+import sys
+import torch
 from typing import Optional, Tuple
 
-import torch
-from diffusers import (
-    AutoencoderKL,
-    UNet2DConditionModel,
-    ControlNetModel,
-    UniPCMultistepScheduler,
-)
-from transformers import AutoTokenizer, PretrainedConfig
+# 프로젝트 루트를 path에 추가
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-# 내부 모듈 (libs 폴더)
+# libs에서 import
 from libs.pipeline_sd15 import StableDiffusionControlNetPipeline
+from diffusers import DDIMScheduler, ControlNetModel
+from diffusers import UNet2DConditionModel as OriginalUNet2DConditionModel
 from libs.detail_encoder.encoder_plus import detail_encoder
 
-# ===== 글로벌 캐시 =====
-_ctx: Optional[Tuple[object, object, str, str, bool]] = None
-# (pipe, mk_encoder, device, autocast_device, use_amp)
-
-
-def _import_text_encoder_cls(model_name_or_path: str, revision: str = None):
-    cfg = PretrainedConfig.from_pretrained(
-        model_name_or_path, subfolder="text_encoder", revision=revision
-    )
-    if cfg.architectures[0] == "CLIPTextModel":
-        from transformers import CLIPTextModel
-        return CLIPTextModel
-    raise ValueError("Unsupported text encoder.")
-
-
-def _load_base_models(pretrained: str, device, dtype):
-    tokenizer = AutoTokenizer.from_pretrained(
-        pretrained, subfolder="tokenizer", use_fast=False
-    )
-    text_encoder_cls = _import_text_encoder_cls(pretrained, None)
-    text_encoder = text_encoder_cls.from_pretrained(pretrained, subfolder="text_encoder")
-    vae = AutoencoderKL.from_pretrained(pretrained, subfolder="vae")
-    unet = UNet2DConditionModel.from_pretrained(pretrained, subfolder="unet")
-
-    vae.to(device, dtype=dtype)
-    unet.to(device, dtype=dtype)
-    text_encoder.to(device, dtype=dtype)
-    return tokenizer, text_encoder, vae, unet
-
-
-def _build_pipeline(pretrained, vae, text_encoder, tokenizer, unet,
-                    controlnet_id, controlnet_pose, device, dtype):
-    pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        pretrained,
-        vae=vae,
-        text_encoder=text_encoder,
-        tokenizer=tokenizer,
-        unet=unet,
-        controlnet=[controlnet_id, controlnet_pose],
-        safety_checker=None,
-        torch_dtype=dtype,
-    )
-    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-    return pipe.to(device)
-
-
-def _pick_dtype(precision: str):
-    if precision == "fp16":
-        return torch.float16
-    if precision == "bf16":
-        return torch.bfloat16
-    return torch.float32
+# 글로벌 캐시
+_CACHED_PIPELINE = None
+_CACHED_MAKEUP_ENCODER = None
 
 
 def load_model(
-    pretrained: str = "runwayml/stable-diffusion-v1-5",
-    checkpoints_dir: str = "checkpoints/makeup",
-    precision: str = "fp16",
-    image_encoder_path: Optional[str] = "./models/image_encoder_l",
-) -> Tuple[object, object, str, str, bool]:
+    model_id: str = "runwayml/stable-diffusion-v1-5",
+    checkpoint_path: str = "./checkpoints/makeup",  # 🔧 루트 경로
+    image_encoder_path: str = "./models/image_encoder_l",  # 🔧 루트 경로 (또는 HF)
+    device: str = "cuda",
+    dtype: torch.dtype = torch.float16,
+    force_reload: bool = False
+) -> Tuple[object, object]:
     """
-    파이프라인과 디테일 인코더를 전역 캐시로 로드.
-    Returns: (pipe, mk_encoder, device, autocast_device, use_amp)
+    메이크업 모델 로드 (캐시 사용)
+    
+    Args:
+        model_id: Stable Diffusion 모델 ID
+        checkpoint_path: 체크포인트 디렉토리 경로 (기본: ./checkpoints/makeup)
+        image_encoder_path: CLIP 이미지 인코더 경로 (기본: ./models/image_encoder_l)
+        device: 실행 디바이스
+        dtype: 모델 데이터 타입
+        force_reload: 강제 재로드 여부
+    
+    Returns:
+        (pipeline, makeup_encoder) 튜플
     """
-    global _ctx
-    if _ctx is not None:
-        return _ctx
-
-    # 환경 안전장치
-    os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
-    os.environ.setdefault("USE_TF", "0")
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = _pick_dtype(precision)
-
-    # Torch2 SDPA가 CLIPVision에서 이슈를 일으킬 수 있어 비활성화
-    if hasattr(torch.backends, "cuda"):
-        torch.backends.cuda.enable_flash_sdp(False)
-        torch.backends.cuda.enable_mem_efficient_sdp(False)
-        torch.backends.cuda.enable_math_sdp(True)
-
-    # 1) 베이스 모델
-    tokenizer, text_encoder, vae, unet = _load_base_models(pretrained, device, dtype)
-
-    # 2) 컨트롤넷 두 개 준비 + 선택적 가중치 로드
-    controlnet_id = ControlNetModel.from_unet(unet)
-    controlnet_pose = ControlNetModel.from_unet(unet)
-
-    ckpt_dir = Path(checkpoints_dir)
-    mk_path = ckpt_dir / "pytorch_model.bin"
-    id_path = ckpt_dir / "pytorch_model_1.bin"
-    pose_path = ckpt_dir / "pytorch_model_2.bin"
-
-    if id_path.exists():
-        controlnet_id.load_state_dict(torch.load(id_path, map_location="cpu"), strict=False)
-    if pose_path.exists():
-        controlnet_pose.load_state_dict(torch.load(pose_path, map_location="cpu"), strict=False)
-
-    controlnet_id.to(device, dtype=dtype)
-    controlnet_pose.to(device, dtype=dtype)
-
-    # 3) 메이크업 디테일 인코더
-    if not image_encoder_path or not os.path.exists(image_encoder_path):
+    global _CACHED_PIPELINE, _CACHED_MAKEUP_ENCODER
+    
+    # 캐시 확인
+    if not force_reload and _CACHED_PIPELINE is not None and _CACHED_MAKEUP_ENCODER is not None:
+        return _CACHED_PIPELINE, _CACHED_MAKEUP_ENCODER
+    
+    # 체크포인트 경로 설정
+    makeup_encoder_path_file = os.path.join(checkpoint_path, "pytorch_model.bin")
+    id_encoder_path_file = os.path.join(checkpoint_path, "pytorch_model_1.bin")
+    pose_encoder_path_file = os.path.join(checkpoint_path, "pytorch_model_2.bin")
+    
+    # 체크포인트 존재 확인
+    required_files = [makeup_encoder_path_file, id_encoder_path_file, pose_encoder_path_file]
+    missing_files = [f for f in required_files if not os.path.exists(f)]
+    
+    if missing_files:
+        raise FileNotFoundError(
+            f"Required checkpoint files not found in {checkpoint_path}:\n" +
+            "\n".join(f"  - {os.path.basename(f)}" for f in missing_files)
+        )
+    
+    # image_encoder_path가 로컬 경로인지 HF 모델명인지 확인
+    if not os.path.exists(image_encoder_path):
+        # HuggingFace에서 다운로드 (예: "openai/clip-vit-large-patch14")
+        print(f"  Image encoder not found locally, will download from HuggingFace: {image_encoder_path}")
         image_encoder_path = "openai/clip-vit-large-patch14"
-
-    mk_encoder = detail_encoder(
-        unet=unet,
-        image_encoder_path=image_encoder_path,
-        device=device,
+    
+    # UNet 로드
+    unet = OriginalUNet2DConditionModel.from_pretrained(
+        model_id, 
+        subfolder="unet",
+        torch_dtype=dtype
+    ).to(device)
+    
+    # ControlNet 초기화
+    id_encoder = ControlNetModel.from_unet(unet)
+    pose_encoder = ControlNetModel.from_unet(unet)
+    
+    # Makeup Encoder 초기화
+    makeup_encoder = detail_encoder(
+        unet, 
+        image_encoder_path, 
+        device, 
         dtype=dtype
     )
-    if mk_path.exists():
-        try:
-            sd = torch.load(mk_path, map_location="cpu")
-            mk_encoder.load_state_dict(sd, strict=False)
-        except Exception as e:
-            print(f"[makeup_manager] warn: failed to load mk_encoder weights: {e}")
+    
+    # 체크포인트 로드
+    id_state_dict = torch.load(id_encoder_path_file, map_location="cpu")
+    pose_state_dict = torch.load(pose_encoder_path_file, map_location="cpu")
+    makeup_state_dict = torch.load(makeup_encoder_path_file, map_location="cpu")
+    
+    id_encoder.load_state_dict(id_state_dict, strict=False)
+    pose_encoder.load_state_dict(pose_state_dict, strict=False)
+    makeup_encoder.load_state_dict(makeup_state_dict, strict=False)
+    
+    # GPU로 이동
+    id_encoder.to(device, dtype=dtype)
+    pose_encoder.to(device, dtype=dtype)
+    makeup_encoder.to(device, dtype=dtype)
+    
+    # 파이프라인 생성
+    pipeline = StableDiffusionControlNetPipeline.from_pretrained(
+        model_id,
+        safety_checker=None,
+        unet=unet,
+        controlnet=[id_encoder, pose_encoder],
+        torch_dtype=dtype
+    ).to(device)
+    
+    pipeline.scheduler = DDIMScheduler.from_config(pipeline.scheduler.config)
+    
+    # 캐시 저장
+    _CACHED_PIPELINE = pipeline
+    _CACHED_MAKEUP_ENCODER = makeup_encoder
+    
+    return pipeline, makeup_encoder
 
-    # 4) 파이프라인 구성
-    pipe = _build_pipeline(
-        pretrained, vae, text_encoder, tokenizer, unet,
-        controlnet_id, controlnet_pose, device, dtype
-    )
-    pipe.set_progress_bar_config(disable=True)
 
-    autocast_device = "cuda" if device == "cuda" else "cpu"
-    use_amp = (dtype != torch.float32)
-
-    _ctx = (pipe, mk_encoder, device, autocast_device, use_amp)
-    return _ctx
+def clear_cache():
+    """캐시된 모델 해제"""
+    global _CACHED_PIPELINE, _CACHED_MAKEUP_ENCODER
+    
+    _CACHED_PIPELINE = None
+    _CACHED_MAKEUP_ENCODER = None
+    
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
