@@ -34,3 +34,10 @@ datasets/
 .vscode/
 .idea/
 .DS_Store
+
+# large artifacts
+*.pt
+*.ckpt
+*.safetensors
+weights/
+outputs/
