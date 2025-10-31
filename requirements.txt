@@ -1,24 +1,33 @@
-# === Core DL ===
+# ========== Core DL ==========
 torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
 Pillow>=10.0.0
 
-# === Vision / Utils ===
+# ========== Vision / Utils ==========
 opencv-python>=4.7.0
 mediapipe>=0.10.0
 pandas
 matplotlib
 
-# === HF / Diffusion Stack ===
+# ========== HF / Diffusion Stack ==========
 transformers>=4.44.0
 diffusers>=0.30.0
 accelerate
 safetensors
 
-# === LLM Feedback ===
+# ========== LLM Feedback ==========
 google-generativeai>=0.8.3
 
-# === (optional) Dev & Networking ===
-# requests>=2.31.0
-# python-dotenv>=1.0.1
+# ========== FastAPI runtime ==========
+fastapi>=0.115,<0.116
+uvicorn[standard]>=0.30,<0.31
+pydantic>=2,<3
+starlette>=0.40,<0.41
+python-multipart>=0.0.9
+
+# ========== Face / Geometry ==========
+# FaceLib (고정 커밋)
+facelib @ git+https://github.com/sajjjadayobi/FaceLib.git@382841efec823f059f49754e5d378abb12cfb551
+# SPIGA (landmark/geometry)
+spiga==0.0.6

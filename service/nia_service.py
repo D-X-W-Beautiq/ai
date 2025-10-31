@@ -14,7 +14,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from model_manager.nia_manager import (
-    load_classification_models,
     load_regression_models,
     get_device
 )
@@ -105,17 +104,9 @@ def denormalize_regression(value, indicator):
     else:
         return float(value)
 
-def convert_to_score(predictions_raw, regression_raw):
-    """원본 예측값을 0~100 점수로 변환"""
+def convert_to_score(regression_raw):
+    """회귀 예측값을 0~100 점수로 변환"""
 
-    # Classification 점수 변환 (높을수록 나쁨 -> 역변환)
-    dryness_score = int(100 - (predictions_raw.get("dryness", 0) / 4) * 100)
-    pigmentation_score = int(100 - (predictions_raw.get("pigmentation", 0) / 5) * 100)
-    pore_score = int(100 - (predictions_raw.get("pore", 0) / 5) * 100)
-    sagging_score = int(100 - (predictions_raw.get("sagging", 0) / 5) * 100)
-    wrinkle_score = int(100 - (predictions_raw.get("wrinkle", 0) / 6) * 100)
-
-    # Regression 점수 변환
     # 좋은 지표 (높을수록 좋음): 정변환
     moisture_value = regression_raw.get("moisture", 0)
     moisture_score = int(normalize(moisture_value, 0, 100) * 100)
@@ -125,25 +116,20 @@ def convert_to_score(predictions_raw, regression_raw):
 
     # 나쁜 지표 (높을수록 나쁨): 역변환
     pigmentation_value = regression_raw.get("pigmentation", 0)
-    pigmentation_reg_score = int(100 - normalize(pigmentation_value, 0, 350) * 100)
+    pigmentation_score = int(100 - normalize(pigmentation_value, 0, 350) * 100)
 
     wrinkle_value = regression_raw.get("wrinkle_Ra", 0)
-    wrinkle_reg_score = int(100 - normalize(wrinkle_value, 0, 50) * 100)
+    wrinkle_score = int(100 - normalize(wrinkle_value, 0, 50) * 100)
 
     pore_value = regression_raw.get("pore", 0)
-    pore_reg_score = int(100 - normalize(pore_value, 0, 2600) * 100)
+    pore_score = int(100 - normalize(pore_value, 0, 2600) * 100)
 
     return {
-        "dryness": dryness_score,
-        "pigmentation": pigmentation_score,
-        "pore": pore_score,
-        "sagging": sagging_score,
-        "wrinkle": wrinkle_score,
-        "pigmentation_reg": pigmentation_reg_score,
         "moisture_reg": moisture_score,
         "elasticity_reg": elasticity_score,
-        "wrinkle_reg": wrinkle_reg_score,
-        "pore_reg": pore_reg_score
+        "wrinkle_reg": wrinkle_score,
+        "pigmentation_reg": pigmentation_score,
+        "pore_reg": pore_score
     }
 
 def run_inference(request: dict) -> dict:
@@ -158,21 +144,11 @@ def run_inference(request: dict) -> dict:
         image = base64_to_image(request["image_base64"])
         image_tensor = preprocess_image(image, resolution=256, crop_face=crop_face)
 
-        class_models, device = load_classification_models()
-        regression_models, _ = load_regression_models()
+        regression_models, device = load_regression_models()
 
         image_tensor = image_tensor.to(device)
 
-        predictions_raw = {}
-
-        # Classification
-        with torch.no_grad():
-            for model_name, model in class_models.items():
-                output = model(image_tensor)
-                predicted_class = output.argmax(dim=1).item()
-                predictions_raw[model_name] = int(predicted_class)
-
-        # Regression
+        # Regression 추론
         with torch.no_grad():
             regression_raw = {}
 
@@ -183,7 +159,7 @@ def run_inference(request: dict) -> dict:
                 regression_raw[model_name] = actual_value
 
         # 0~100 점수로 변환
-        predictions = convert_to_score(predictions_raw, regression_raw)
+        predictions = convert_to_score(regression_raw)
 
         result = {
             "status": "success",

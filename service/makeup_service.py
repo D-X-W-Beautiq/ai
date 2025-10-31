@@ -37,7 +37,7 @@ def get_face_detector():
     return _FACE_DETECTOR
 
 
-def inference(
+def run_inference(
     id_image: Union[Image.Image, str],
     makeup_image: Union[Image.Image, str],
     guidance_scale: float = 1.6,
@@ -47,41 +47,29 @@ def inference(
     device: str = "cuda"
 ) -> Image.Image:
     """
-    메이크업 전이 추론
-    
-    Args:
-        id_image: 원본 얼굴 이미지 (PIL.Image 또는 경로)
-        makeup_image: 메이크업 참조 이미지 (PIL.Image 또는 경로)
-        guidance_scale: 가이던스 스케일
-        size: 출력 이미지 크기
-        num_inference_steps: 디노이징 스텝 수
-        seed: 랜덤 시드
-        device: 실행 디바이스
-    
-    Returns:
-        PIL.Image: 메이크업 전이된 결과 이미지
+    메이크업 전이 추론 
     """
     # 이미지 로드
     if isinstance(id_image, str):
         id_image = Image.open(id_image).convert("RGB")
     if isinstance(makeup_image, str):
         makeup_image = Image.open(makeup_image).convert("RGB")
-    
+
     # 리사이즈
     id_image = id_image.resize((size, size))
     makeup_image = makeup_image.resize((size, size))
-    
+
     # 포즈 이미지 생성
     detector = get_face_detector()
     pose_image = get_draw(id_image, size=size)
-    
+
     # 모델 로드 (캐시 사용)
     pipeline, makeup_encoder = load_model(device=device)
-    
+
     # 시드 설정
     if seed is not None:
         torch.manual_seed(seed)
-    
+
     # 추론 실행
     result_img = makeup_encoder.generate(
         id_image=[id_image, pose_image],
@@ -91,27 +79,8 @@ def inference(
         num_inference_steps=num_inference_steps,
         seed=seed
     )
-    
+
     return result_img
-
-
-def batch_inference(
-    id_images: List[Union[Image.Image, str]],
-    makeup_images: List[Union[Image.Image, str]],
-    **kwargs
-) -> List[Image.Image]:
-    """
-    배치 추론
-    """
-    if len(id_images) != len(makeup_images):
-        raise ValueError("id_images와 makeup_images의 길이가 같아야 합니다.")
-    
-    results = []
-    for id_img, makeup_img in zip(id_images, makeup_images):
-        result = inference(id_img, makeup_img, **kwargs)
-        results.append(result)
-    
-    return results
 
 
 def main():
@@ -147,7 +116,7 @@ def main():
         print(f"📂 Makeup: {makeup_ref}")
         print(f"⚙️  Processing...")
         
-        result = inference(id_input, makeup_ref, guidance_scale=1.6)
+        result = run_inference(id_input, makeup_ref, guidance_scale=1.6)
         result.save(output_path)
         
         print(f"✅ Saved: {output_path}")

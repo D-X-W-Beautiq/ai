@@ -34,14 +34,35 @@ class detail_encoder(nn.Module):
         self.dtype = dtype
 
         # ---- Load CLIP-ViT-L/14 (force eager attention to avoid SDPA issue) ----
-        # NOTE: We load HF's official vision model, copy weights into our local CLIPVisionModel,
-        #       then free the original to save memory.
-        clip_encoder = OriginalCLIPVisionModel.from_pretrained(
-            image_encoder_path,
-            attn_implementation="eager",
+        # TF/PT 자동 인식: pytorch_model.bin 없고 TF 가중치만 있으면 from_tf=True
+        has_pt = os.path.exists(os.path.join(image_encoder_path, "pytorch_model.bin"))
+        has_tf = (
+            os.path.exists(os.path.join(image_encoder_path, "tf_model.h5"))
+            or any(name.endswith(".index") or name.endswith(".data-00000-of-00001")
+                for name in os.listdir(image_encoder_path) if os.path.isfile(os.path.join(image_encoder_path, name)))
         )
+        force_tf = os.getenv("MAKEUP_IMAGE_ENCODER_FROM_TF", "").strip().lower() in ("1", "true", "yes")
+        use_from_tf = force_tf or ((not has_pt) and has_tf)
+
+        try:
+            clip_encoder = OriginalCLIPVisionModel.from_pretrained(
+                image_encoder_path,
+                attn_implementation="eager",
+                from_tf=use_from_tf,                 # ✅ 핵심
+                torch_dtype=self.dtype               # 메모리 절약/일관성
+            )
+        except Exception as e:
+            # 메타데이터 상충 등으로 실패 시 반대 플래그로 한 번 더 시도
+            clip_encoder = OriginalCLIPVisionModel.from_pretrained(
+                image_encoder_path,
+                attn_implementation="eager",
+                from_tf=not use_from_tf,             # ✅ 토글 재시도
+                torch_dtype=self.dtype
+            )
+
         # Be explicit in case transformers tries to flip it later
         clip_encoder.config.attn_implementation = "eager"
+
 
         # Our local implementation that mirrors the config
         self.image_encoder = CLIPVisionModel(clip_encoder.config)
