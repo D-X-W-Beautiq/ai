@@ -27,7 +27,6 @@ def load_model(model_name: Optional[str] = None) -> "genai.GenerativeModel":
     모델은 최초 1회만 생성/캐시.
     환경변수:
       - FEEDBACK_MODEL_NAME (기본: gemini-2.5-flash)
-      - 선택: FEEDBACK_TEMPERATURE, FEEDBACK_TOP_P 등 파라미터가 필요하면 여기서 확장 가능
     """
     global _model_obj, _model_name
     with _model_lock:
@@ -37,12 +36,7 @@ def load_model(model_name: Optional[str] = None) -> "genai.GenerativeModel":
         _configure()
         _model_name = model_name or os.getenv("FEEDBACK_MODEL_NAME", "gemini-2.5-flash")
 
-        # 필요 시 generation_config 확장 가능
-        gen_cfg = {
-            # "temperature": float(os.getenv("FEEDBACK_TEMPERATURE", "0.6")),
-            # "top_p": float(os.getenv("FEEDBACK_TOP_P", "0.9")),
-        }
-        # 빈 dict이면 None으로
+        gen_cfg = {}
         gen_cfg = gen_cfg if any(gen_cfg.values()) else None
 
         _model_obj = genai.GenerativeModel(model_name=_model_name, generation_config=gen_cfg)
