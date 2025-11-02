@@ -13,7 +13,7 @@ def _b64_to_pil(b64: str) -> Image.Image:
     from io import BytesIO
     return Image.open(BytesIO(base64.b64decode(b64))).convert("RGB")
 
-@router.post("/simulate", response_model=MakeupResponse)
+@router.post("/simulate", response_model=MakeupResponse, response_model_exclude_none=True)
 async def simulate(req: MakeupRequest):
     try:
         id_img = _b64_to_pil(req.source_image_base64)

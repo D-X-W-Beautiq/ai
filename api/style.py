@@ -5,7 +5,7 @@ import os
 
 router = APIRouter(prefix="/style", tags=["Style Recommendation"])
 
-@router.post("/recommend", response_model=StyleResponse)
+@router.post("/recommend", response_model=StyleResponse, response_model_exclude_none=True)
 def recommend_style(request: StyleRequest):
     try:
         from service.style_service import run_inference

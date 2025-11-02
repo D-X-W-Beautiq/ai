@@ -4,7 +4,7 @@ from schemas import CustomizationRequest, CustomizationResponse
 
 router = APIRouter(prefix="/custom", tags=["Customization"])
 
-@router.post("/apply", response_model=CustomizationResponse, summary="커스텀 메이크업 적용")
+@router.post("/apply", response_model=CustomizationResponse, response_model_exclude_none=True, summary="커스텀 메이크업 적용")
 async def apply_customization(request: CustomizationRequest):
     """
     얼굴 이미지에 메이크업 intensity를 조정해 적용하는 API

@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 router = APIRouter(prefix="/nia", tags=["NIA - 피부 분석"])
 
-@router.post("/analyze", response_model=NIAResponse, summary="피부 분석(5 지표)")
+@router.post("/analyze", response_model=NIAResponse, response_model_exclude_none=True, summary="피부 분석(5 지표)")
 async def analyze_skin(request: NIARequest) -> NIAResponse:
     try:
         from service.nia_service import run_inference

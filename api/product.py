@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 router = APIRouter(prefix="/product", tags=["Product - 제품 추천"])
 
-@router.post("/reason", response_model=ProductResponse, summary="제품 추천 이유 생성")
+@router.post("/reason", response_model=ProductResponse, response_model_exclude_none=True, summary="제품 추천 이유 생성")
 async def generate_recommendation_reason(request: ProductRequest) -> ProductResponse:
     try:
         from service.product_service import run_inference

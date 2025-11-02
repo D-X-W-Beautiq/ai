@@ -8,6 +8,11 @@ from PIL import Image
 from model_manager.clip_manager import load_clip
 
 
+# 글로벌 데이터셋 캐시
+_cached_dataset = None
+_cached_json_dir = None
+
+
 def _decode_image(base64_str: str) -> Image.Image:
     """Base64 → PIL.Image 변환"""
     image_bytes = base64.b64decode(base64_str)
@@ -31,6 +36,9 @@ def _load_dataset(json_dir: str):
     ]
 
     dataset = []
+    seen_style_ids = set()  # 중복 체크용 (style_id)
+    seen_image_paths = set()  # 중복 체크용 (image_path)
+
     for jf in json_files:
         json_path = os.path.join(json_dir, jf)
         if not os.path.exists(json_path):
@@ -47,6 +55,17 @@ def _load_dataset(json_dir: str):
                     # image_name에서 확장자 제거
                     image_name = item.get("image_name", "")
                     style_id = os.path.splitext(image_name)[0] if image_name else ""
+
+                    # 중복 체크: 이미 본 style_id 또는 image_path면 건너뛰기
+                    if style_id and style_id in seen_style_ids:
+                        continue
+                    if img_path in seen_image_paths:
+                        continue
+
+                    if style_id:
+                        seen_style_ids.add(style_id)
+                    seen_image_paths.add(img_path)
+
                     dataset.append({
                         "style_id": style_id,
                         "style_image_base64": None,
@@ -64,6 +83,17 @@ def _load_dataset(json_dir: str):
                     if not image_name:  # image_name이 없으면 경로에서 추출
                         image_name = os.path.basename(rel_path)
                     style_id = os.path.splitext(image_name)[0]
+
+                    # 중복 체크: 이미 본 style_id 또는 image_path면 건너뛰기
+                    if style_id and style_id in seen_style_ids:
+                        continue
+                    if img_path in seen_image_paths:
+                        continue
+
+                    if style_id:
+                        seen_style_ids.add(style_id)
+                    seen_image_paths.add(img_path)
+
                     dataset.append({
                         "style_id": style_id,
                         "style_image_base64": None,
@@ -71,9 +101,22 @@ def _load_dataset(json_dir: str):
                         "caption": text,
                         "image_path": img_path
                     })
-                    
-    print(f"[총 로드된 이미지 수]: {len(dataset)}")
+
     return dataset
+
+
+def get_dataset(json_dir: str):
+    """
+    데이터셋을 글로벌 캐시에서 가져오거나, 없으면 로드 후 캐시
+    """
+    global _cached_dataset, _cached_json_dir
+
+    # 캐시된 데이터가 없거나 json_dir이 변경된 경우에만 로드
+    if _cached_dataset is None or _cached_json_dir != json_dir:
+        _cached_dataset = _load_dataset(json_dir)
+        _cached_json_dir = json_dir
+
+    return _cached_dataset
 
 
 def run_inference(request: dict, json_dir: str) -> dict:
@@ -110,8 +153,8 @@ def run_inference(request: dict, json_dir: str) -> dict:
             text_emb = model.get_text_features(**text_inputs)
             text_emb = text_emb / text_emb.norm(p=2, dim=-1, keepdim=True)
 
-        # 스타일 후보 로드 (여러 JSON)
-        dataset = _load_dataset(json_dir)
+        # 스타일 후보 로드 (캐시 활용)
+        dataset = get_dataset(json_dir)
         results = []
 
         for item in dataset:
@@ -141,27 +184,51 @@ def run_inference(request: dict, json_dir: str) -> dict:
             score_txt = torch.matmul(text_emb, text_emb.T).item()
             score = round(0.85 * score_img + 0.15 * score_txt, 4)
 
-            # base64 인코딩
-            try:
-                if 'img' not in locals():
-                    img = Image.open(img_path).convert("RGB")
-                img_b64 = _encode_image(img)
-            except Exception:
-                img_b64 = ""
-
+            # 유사도 계산 단계에서는 이미지 인코딩 안 함 (경로만 저장)
             results.append({
                 "style_id": item.get("style_id", ""),
-                "style_image_base64": img_b64,
+                "image_path": img_path,
                 "score": score
             })
 
         if not results:
             return {"status": "failed", "message": "추천 가능한 스타일 후보가 없습니다."}
 
-        # Top-3 추천
-        results = sorted(results, key=lambda x: x["score"], reverse=True)[:3]
+        # Top-3 추천 (중복 제거)
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
 
-        return {"status": "success", "results": results}
+        # style_id 기준으로 중복 제거하면서 Top-3 선택
+        unique_results = []
+        seen_ids = set()
+
+        for r in results:
+            sid = r.get("style_id", "")
+
+            # 빈 문자열 체크
+            if not sid or sid.strip() == "":
+                continue
+
+            if sid not in seen_ids:
+                unique_results.append(r)
+                seen_ids.add(sid)
+                if len(unique_results) >= 3:
+                    break
+
+        # Top-3에 대해서만 이미지 base64 인코딩 (Lazy Loading)
+        final_results = []
+        for r in unique_results:
+            try:
+                img = Image.open(r["image_path"]).convert("RGB")
+                img_b64 = _encode_image(img)
+            except Exception:
+                img_b64 = ""
+
+            final_results.append({
+                "style_id": r["style_id"],
+                "style_image_base64": img_b64
+            })
+
+        return {"status": "success", "results": final_results}
 
     except Exception as e:
         return {"status": "failed", "message": str(e)}
