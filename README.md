@@ -1,8 +1,8 @@
-# 💄 Beautiq AI Backend (FastAPI)
+# Beautiq AI- Backend (FastAPI) _ 1103ver
 
 ---
 
-## ⚙️ 주요 구성
+### 주요 구성
 
 | 구분 | 설명 |
 |------|------|
@@ -17,7 +17,7 @@
 
 ---
 
-## 📂 프로젝트 구조
+### 프로젝트 구조
 
 ```
 
@@ -51,9 +51,9 @@ project_root/
 
 ---
 
-## 🚀 실행 방법
+### 실행 방법
 
-### 1️⃣ 클론 및 환경 세팅
+#### 1. 클론 및 환경 세팅
 
 ```bash
 git clone https://github.com/D-X-W-Beautiq/ai.git
@@ -68,25 +68,22 @@ pip install --no-cache-dir -r requirements.txt
 * **Checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
 * **Data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
 
----
 
-### 2️⃣ 환경 변수 설정
+#### 2. 환경 변수 설정
 
 ```bash
 export GEMINI_API_KEY="your_api_key_here"
 ```
 
----
 
-### 3️⃣ FastAPI 서버 실행
+#### 3. FastAPI 서버 실행
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1 --timeout-keep-alive 1200
 ```
 
----
 
-### 4️⃣ 임베딩 사전 계산 및 테스트
+#### 4. 임베딩 사전 계산 및 테스트
 
 ```bash
 python precompute_embeddings.py
@@ -107,7 +104,7 @@ python test.py
 
 ---
 
-## 🧩 End-to-End 파이프라인
+### End-to-End 파이프라인
 
 ```
 NIA(피부 분석)
@@ -123,13 +120,11 @@ Makeup(메이크업 전이)
 Customization(커스터마이징)
 ```
 
-✅ **엔드투엔드 파이프라인 구현 완료**
-✅ NIA → Feedback → Product → Style → Makeup → Customization 순서로 연결
+✅ **엔드투엔드 파이프라인 구현 완료** (NIA → Feedback → Product → Style → Makeup → Customization 순서로 연결)
 ⚠️ Makeup 단계에서 **모델 로딩 시간 약 200초 소요** (최적화 필요)
 
----
 
-## ⏳ 확인 및 개선 필요사항
+### 확인 및 개선 필요사항
 
 | 항목                      | 상태       | 비고                          |
 | ----------------------- | -------- | --------------------------- |
@@ -140,41 +135,41 @@ Customization(커스터마이징)
 | 임베딩 캐싱                  | ⚙️ 코드 완료 | 실제 속도 개선 테스트 필요             |
 | 결과 퀄리티 평가               | 🚧 예정    | 팀 내부 논의 필요                  |
 
----
 
-## 🤝 BE팀 전달사항
+### ⭐BE팀 전달사항⭐
 
-1. **서버 환경 제한으로 마지막 속도 테스트 미실시**
+1. **현재 AI팀 서버 환경 제한으로 인해 마지막 테스트를 진행하지 못했습니다.**
+   전체 파이프라인이 정상적으로 동작하는 것은 확인하였습니다.
+   다만 **메이크업 단계에서 처리 시간이 상당히 오래 걸리는 문제(약 200초 내외)** 가 있습니다.
+   모델 로딩 과정에서 병목 현상이 발생하는 것으로 추정되며, 이에 대한 추가적인 최적화가 필요합니다.
+   현재 실험 가능한 환경이 제한되어 있어 우선 코드를 전달드리며 추후 서버 자원이 확보되면 로딩 최적화(모델 프리로드 등) 테스트를 진행할 예정입니다.
 
-   * Makeup 단계에서 모델 로딩 시 **약 200초** 소요
-   * 원인: `makeup_manager.py`에서 캐시 미적용 또는 GPU 초기화 지연
-   * **해결 제안:**
-     서버 기동 시점(`startup` 이벤트)에서 `load_model()` 프리로드 처리
+2. **피부 분석(`NIA`) 부분은 현재 회귀값 기반으로만 처리되어 있습니다.**
+   즉, 점수 산출이 임시로 단순 회귀 결과값을 기준으로 변환되는 형태로 되어 있습니다.
+   추후 BE단에서 점수 변환 및 스케일링 로직을 통합 관리하실 수 있도록 관련 구조를 조정하셔야 할 수 있습니다.
 
-2. **피부분석(NIA) 결과는 회귀값 기반 임시 처리**
+3. **`Product`(제품 추천) 처리 관련 확인이 필요합니다.**
+   AI팀은 BE로부터 `filtered_products` 리스트를 전달받아, 각 제품별 추천 이유(`reason`)를 생성하도록 구성되어 있습니다.
+   따라서 BE에서 전달되는 `filtered_products`의 구조가 아래 스키마(`ProductIn`)와 동일한지 반드시 확인 부탁드립니다.
 
-   * 점수 변환 로직은 현재 AI단에서 수행
-   * 향후 BE단 점수 스케일링 일원화 검토 필요
+   ```python
+   class ProductIn(BaseModel):
+       product_id: str
+       product_name: str
+       brand: str
+       category: str
+       price: int
+       review_score: float
+       review_count: int
+       ingredients: List[str]
+   ```
 
-3. **Product 추천 이유 생성(`product_service.py`)**
+   또한 추천 이유 생성은 `Gemini` 모델을 통해 이루어지므로,
+   요청 시 필드 누락이나 포맷 불일치가 없도록 유의해주시면 감사하겠습니다.
 
-   * AI단은 BE에서 전달받는 `filtered_products` 리스트 기반으로
-     각 제품별 추천 이유(`reason`)를 생성
-   * BE의 필드 구조가 `schemas.ProductIn`과 동일한지 확인 필요
-
-     ```python
-     class ProductIn(BaseModel):
-         product_id: str
-         product_name: str
-         brand: str
-         category: str
-         price: int
-         review_score: float
-         review_count: int
-         ingredients: List[str]
-     ```
-
-4. **엔드투엔드 요청 순서**
+4. **전체 엔드투엔드 파이프라인은 아래 순서로 연결되어 있습니다.**
+   각 단계의 요청 및 응답은 정상적으로 이어지며,
+   최종 결과물은 `data/output/` 경로에 저장됩니다.
 
    ```
    /v1/nia/analyze
@@ -185,19 +180,6 @@ Customization(커스터마이징)
    → /v1/custom/apply
    ```
 
-   각 단계의 결과는 `data/output/`에 저장되며 독립 호출도 가능.
-
----
-
-## 🧠 모델 및 라이브러리
-
-| 구분      | 사용 모델                                   |
-| ------- | --------------------------------------- |
-| 피부 분석   | NIA ResNet50 (분류5 + 회귀5)                |
-| 스타일 추천  | CLIP (`openai/clip-vit-base-patch32`)   |
-| 메이크업 전이 | Stable Diffusion v1.5 + ControlNet      |
-| 커스터마이즈  | SegFormer (`jonathandinu/face-parsing`) |
-| 텍스트 생성  | Google Gemini (2.0/2.5 flash)           |
-
-(`README.md` 생성 + 커밋 메시지 예시 포함해서)
-```
+   현재까지 모든 단계의 응답 구조는 스키마(`schemas.py`) 기준으로 일관되게 동작함을 확인하였습니다.
+   다만 메이크업 단계에서의 생성 시간 및 GPU 리소스 활용 최적화가 필요하므로,
+   서버 환경 설정 시 해당 부분을 고려해주시면 감사하겠습니다.
