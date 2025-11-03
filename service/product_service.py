@@ -132,11 +132,11 @@ def generate_recommendation_prompt(skin_analysis, recommended_categories, produc
 
     # 카테고리별 점수 계산 로직 정의 -> 프롬프트 생성용 
     category_score_calculators = {
-        'moisture': lambda s: min(s.get("dryness", 100), s.get("moisture_reg", 100)),
-        'elasticity': lambda s: min(s.get("sagging", 100), s.get("elasticity_reg", 100)),
-        'wrinkle': lambda s: min(s.get("wrinkle", 100), s.get("wrinkle_reg", 100)),
-        'pigmentation': lambda s: min(s.get("pigmentation", 100), s.get("pigmentation_reg", 100)),
-        'pore': lambda s: min(s.get("pore", 100), s.get("pore_reg", 100))
+        'moisture': lambda s: s.get("moisture_reg", 100),
+        'elasticity': lambda s: s.get("elasticity_reg", 100),
+        'wrinkle': lambda s: s.get("wrinkle_reg", 100),
+        'pigmentation': lambda s: s.get("pigmentation_reg", 100),
+        'pore': lambda s: s.get("pore_reg", 100)
     }
 
     # 부족한 영역 정보 추출
@@ -146,11 +146,11 @@ def generate_recommendation_prompt(skin_analysis, recommended_categories, produc
         korean_name = category_map.get(category, category)
         threshold = thresholds.get(category, 70)
 
-        # 대표 점수 계산
+        # 점수 계산
         calculator = category_score_calculators.get(category)
         if calculator:
             score = calculator(skin_analysis)
-            concern_details.append(f"{korean_name} (대표점수: {score}/100, 기준: {threshold}점 미만)")
+            concern_details.append(f"{korean_name} (점수: {score}/100, 기준: {threshold}점 미만)")
 
     # 프롬프트 작성
     if locale == "ko-KR":

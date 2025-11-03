@@ -4,7 +4,7 @@ from schemas import FeedbackRequest, FeedbackResponse
 
 router = APIRouter(prefix="/feedback", tags=["Feedback"])
 
-@router.post("/generate", response_model=FeedbackResponse, summary="피드백/설명 생성")
+@router.post("/generate", response_model=FeedbackResponse, response_model_exclude_none=True, summary="피드백/설명 생성")
 async def generate_feedback(request: FeedbackRequest) -> FeedbackResponse:
     """
     JSON 파일 경로를 받아 피드백 생성

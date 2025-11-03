@@ -1,34 +1,23 @@
-# -*- coding: utf-8 -*-
+# main.py
+import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from api.router import api_router
+from api.health import router as health_router
+
+ROOT_PATH = os.getenv("ROOT_PATH", "")  # 예: "/proxy/8000" (환경에 맞게)
 
 app = FastAPI(
-    title="Beautiq AI-BE",
+    title="Beautiq API",
     version="0.1.0",
-    docs_url="/docs",
+    root_path=ROOT_PATH,        # ✅ 중요: 프록시 경로
+    docs_url="/docs",           # 기본 유지 (root_path가 앞에 자동으로 붙습니다)
     redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
-# CORS (필요 시 도메인 제한)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # TODO: 운영 시 FE/BE 도메인만 허용
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.include_router(health_router)
+app.include_router(api_router)  # api_router 내부 prefix가 /v1이면 그대로 유지
 
-# /v1 아래로 라우터 마운트
-app.include_router(api_router, prefix="/v1")
-
-
-# 선택: 기동 로그/프리로드 훅
-@app.on_event("startup")
-async def on_startup():
-    print("[startup] Beautiq AI-BE is starting ...")
-
-
-@app.get("/", tags=["meta"])
-async def root():
-    return {"service": "Beautiq AI-BE", "version": app.version}
+@app.get("/", include_in_schema=False)
+def _root():
+    return {"message": "See docs", "docs": f"{ROOT_PATH}/docs", "openapi": f"{ROOT_PATH}/openapi.json"}
