@@ -22,30 +22,39 @@
 ```
 
 project_root/
-├── main.py                      # FastAPI 앱 생성 및 /v1 마운트
-├── api/
-│   ├── router.py                # 모든 하위 라우터 통합
-│   ├── nia.py                   # /v1/nia/analyze (피부 분석)
-│   ├── feedback.py              # /v1/feedback/generate
-│   ├── product.py               # /v1/product/reason
-│   ├── style.py                 # /v1/style/recommend
-│   ├── makeup.py                # /v1/makeup/simulate
-│   ├── customization.py         # /v1/custom/apply
-│   └── health.py                # /health, /ready, /version
-├── service/
-│   ├── nia_service.py           # 피부 분석 (NIA 모델)
-│   ├── feedback_service.py      # LLM 피드백 생성 (Gemini)
-│   ├── product_service.py       # 제품 추천 이유 생성 (Gemini)
-│   ├── style_service.py         # CLIP 기반 스타일 추천
-│   ├── makeup_service.py        # Stable Makeup 전이
-│   └── customization_service.py # SegFormer 기반 커스터마이즈
-├── model_manager/               # 모델 로딩 및 캐싱
-├── utils/                       # base64, error handler 등
-├── data/                        # 예시 데이터 및 결과 저장
-├── checkpoints/                 # AI 모델 가중치
-├── test.py                 
-├── precompute_embeddings.py          
-└── requirements.txt
+├── main.py # FastAPI 앱 생성, CORS, /v1 마운트, 헬스체크, startup 프리로드
+├── precompute_embeddings.py # 사전 임베딩 계산 스크립트
+├── test.py # 전체 파이프라인 테스트 스크립트
+│
+├── api/ # 엔드포인트 라우터 모듈
+│ ├── init.py
+│ ├── router.py # /v1 하위 라우터 통합
+│ ├── nia.py # /v1/nia/analyze (피부 분석)
+│ ├── feedback.py # /v1/feedback/generate (피드백 생성)
+│ ├── product.py # /v1/product/reason (추천 이유 생성)
+│ ├── style.py # /v1/style/recommend (스타일 추천)
+│ ├── makeup.py # /v1/makeup/simulate (메이크업 전이)
+│ ├── customization.py # /v1/custom/apply (커스터마이즈 적용)
+│ └── health.py # /health, /ready, /version
+│
+├── schemas.py # Pydantic 스키마 (요청/응답 구조 정의, 팀 계약서)
+├── config.py # 환경 변수 및 경로 설정 (GEMINI_API_KEY, checkpoints 등)
+│
+├── utils/ # 공통 유틸리티
+│ ├── init.py
+│ ├── base64_utils.py # 이미지 Base64 인코딩/디코딩
+│ └── errors.py # 공통 예외 및 에러 응답 포맷
+│
+├── service/ # AI 서비스 로직 (각 단계별 run_inference)
+├── model_manager/ # 모델 로딩, 캐싱, 싱글턴 관리
+│
+├── checkpoints/ # 모델 가중치 (.bin / .pth)
+├── data/ # 테스트 입력 및 결과 출력
+├── libs/ # 공용 모듈 (예: detail_encoder, pipeline 등)
+│
+├── requirements_org/ # 서브 요구사항 모음
+├── requirements.txt # 통합 패키지 요구사항
+└── README.md # 실행 방법 및 엔드포인트 문서
 
 ````
 
