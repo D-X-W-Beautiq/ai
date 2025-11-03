@@ -6,14 +6,14 @@
 
 | 구분 | 설명 |
 |------|------|
-| **엔트리** | `main.py` — FastAPI 앱 생성, `/v1` 통합 마운트 |
-| **라우터 통합** | `api/router.py` — `/v1/nia`, `/v1/feedback`, `/v1/product`, `/v1/style`, `/v1/makeup`, `/v1/custom` |
-| **서비스 코드** | `service/*_service.py` — 각 단계별 추론 로직 |
-| **모델 매니저** | `model_manager/*_manager.py` — 모델 로딩/캐싱/싱글턴 |
-| **공통 스키마** | `schemas.py` — 모든 요청·응답 모델 (팀 계약서 역할) |
-| **헬스체크** | `api/health.py` — `/health`, `/ready`, `/version` |
-| **환경 설정** | `config.py` — GEMINI API 키, 경로, 체크포인트 설정 |
-| **유틸리티** | `utils/base64_utils.py`, `utils/errors.py` |
+| 엔트리 | `main.py` — FastAPI 앱 생성, `/v1` 통합 마운트 |
+| 라우터 통합 | `api/router.py` — `/v1/nia`, `/v1/feedback`, `/v1/product`, `/v1/style`, `/v1/makeup`, `/v1/custom` |
+| 서비스 코드 | `service/*_service.py` — 각 단계별 추론 로직 |
+| 모델 매니저 | `model_manager/*_manager.py` — 모델 로딩/캐싱/싱글턴 |
+| 공통 스키마 | `schemas.py` — 모든 요청·응답 모델 (팀 계약서 역할) |
+| 헬스체크 | `api/health.py` — `/health`, `/ready`, `/version` |
+| 환경 설정 | `config.py` — GEMINI API 키, 경로, 체크포인트 설정 |
+| 유틸리티 | `utils/base64_utils.py`, `utils/errors.py` |
 
 <br>
 
@@ -120,7 +120,7 @@ Makeup(메이크업 전이)
 Customization(커스터마이징)
 ```
 
-✅ **엔드투엔드 파이프라인 구현 완료** (NIA → Feedback → Product → Style → Makeup → Customization 순서로 연결)
+✅ **엔드투엔드 파이프라인 구현 완료** (NIA → Feedback → Product → Style → Makeup → Customization 순서로 연결)  
 ⚠️ Makeup 단계에서 **모델 로딩 시간 약 200초 소요** (최적화 필요)
 
 <br>
