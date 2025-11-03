@@ -1,291 +1,204 @@
-# AI-BE Project (1028 Version)
+```markdown
+# 💄 Beautiq AI Backend (FastAPI)
 
-AI 서버와 백엔드 서버 연동을 위한 AI 서비스 모듈입니다.  
-1028 버전 기준 파일 구조, 각 모듈 사용법, 파이프라인 예시를 정리했습니다.
+---
 
-## Installation
-```python
-pip install -r requirements.txt
+## ⚙️ 주요 구성
+
+| 구분 | 설명 |
+|------|------|
+| **엔트리** | `main.py` — FastAPI 앱 생성, `/v1` 통합 마운트 |
+| **라우터 통합** | `api/router.py` — `/v1/nia`, `/v1/feedback`, `/v1/product`, `/v1/style`, `/v1/makeup`, `/v1/custom` |
+| **서비스 코드** | `service/*_service.py` — 각 단계별 추론 로직 |
+| **모델 매니저** | `model_manager/*_manager.py` — 모델 로딩/캐싱/싱글턴 |
+| **공통 스키마** | `schemas.py` — 모든 요청·응답 모델 (팀 계약서 역할) |
+| **헬스체크** | `api/health.py` — `/health`, `/ready`, `/version` |
+| **환경 설정** | `config.py` — GEMINI API 키, 경로, 체크포인트 설정 |
+| **유틸리티** | `utils/base64_utils.py`, `utils/errors.py` |
+
+---
+
+## 📂 프로젝트 구조
+
 ```
-> GitHub의 파일 크기 제한(100MB)으로 인해 [checkpoints/](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing) 와 [data/](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing) 디렉토리는 저장소에 포함되지 않았습니다.
-아래 Google Drive 링크에서 다운로드 받아 프로젝트 루트에 배치해야 합니다.
 
-배치 후 최종 구조 예시:
-```bash
 project_root/
-├── libs/
+├── main.py                      # FastAPI 앱 생성 및 /v1 마운트
+├── api/
+│   ├── router.py                # 모든 하위 라우터 통합
+│   ├── nia.py                   # /v1/nia/analyze (피부 분석)
+│   ├── feedback.py              # /v1/feedback/generate
+│   ├── product.py               # /v1/product/reason
+│   ├── style.py                 # /v1/style/recommend
+│   ├── makeup.py                # /v1/makeup/simulate
+│   ├── customization.py         # /v1/custom/apply
+│   └── health.py                # /health, /ready, /version
 ├── service/
-├── model_manager/
-├── modelS/
-├── checkpoints/         # from Google Drive
-├── data/                # from Google Drive
-├── requirements.txt
-└── README.md
-```
+│   ├── nia_service.py           # 피부 분석 (NIA 모델)
+│   ├── feedback_service.py      # LLM 피드백 생성 (Gemini)
+│   ├── product_service.py       # 제품 추천 이유 생성 (Gemini)
+│   ├── style_service.py         # CLIP 기반 스타일 추천
+│   ├── makeup_service.py        # Stable Makeup 전이
+│   └── customization_service.py # SegFormer 기반 커스터마이즈
+├── model_manager/               # 모델 로딩 및 캐싱
+├── utils/                       # base64, error handler 등
+├── data/                        # 예시 데이터 및 결과 저장
+├── checkpoints/                 # AI 모델 가중치
+├── test.py                 
+├── precompute_embeddings.py          
+└── requirements.txt
 
+````
 
-## Project Structure
+---
+
+## 🚀 실행 방법
+
+### 1️⃣ 클론 및 환경 세팅
+
 ```bash
-project_root/
-├── main.py                         # FastAPI 서버 진입점 (BE팀 관리)
-│
-├── api/                            # API 엔드포인트 정의 (BE팀)
-│   ├── nia.py                      # 피부 분석 (1-1)
-│   ├── feedback.py                 # 피부 피드백 (1-2)
-│   ├── product.py                  # 제품 추천 (1-3)
-│   ├── style.py                    # 스타일 추천 (2-1)
-│   ├── makeup.py                   # 메이크업 시뮬레이션 (2-2)
-│   └── customization.py            # 커스터마이징 (3-1)
-│
-├── service/                        # 추론 로직 (AI팀)
-│   ├── nia_service.py
-│   ├── feedback_service.py
-│   ├── product_service.py
-│   ├── style_service.py
-│   ├── makeup_service.py           
-│   └── customization_service.py
-│
-├── model_manager/                  # 모델 로딩 및 캐시 관리 (AI팀)
-│   ├── nia_manager.py
-│   ├── feedback_manager.py
-│   ├── product_manager.py
-│   ├── clip_manager.py
-│   ├── makeup_manager.py          
-│   └── customization_manager.py
-│
-├── checkpoints/                    # 학습된 모델 가중치 (AI팀)
-│   ├── nia/
-│   │   ├── class/
-│   │   │   ├── dryness/state_dict.bin
-│   │   │   ├── pigmentation/state_dict.bin
-│   │   │   ├── pore/state_dict.bin
-│   │   │   ├── sagging/state_dict.bin
-│   │   │   └── wrinkle/state_dict.bin
-│   │   └── regression/
-│   │       ├── elasticity_R2/state_dict.bin
-│   │       ├── moisture/state_dict.bin
-│   │       ├── pigmentation/state_dict.bin
-│   │       ├── pore/state_dict.bin
-│   │       └── wrinkle_Ra/state_dict.bin
-│   │
-│   ├── customization/customization.pt
-│   ├── style/clip-vit-base.pt
-│   └── makeup/                     
-│       ├── pytorch_model.bin        
-│       ├── pytorch_model_1.bin  
-│       └── pytorch_model_2.bin      
-│
-├── data/
-│   ├── product.xlsx
-│   ├── style-recommendation/...
-│   ├── inference.jpg
-│   ├── predictions.json             # nia 실행 시 생성
-│   ├── output/                      # makeup 결과 이미지 저장 폴더 (실행 시 자동 생성)
-│   └── test_imgs_makeup/            # 로컬 테스트용
-│
-├── libs/                            # 내부 공용 모듈
-│   ├── __init__.py                 
-│   ├── face_utils.py
-│   ├── pipeline_sd15.py
-│   ├── spiga_draw.py
-│   └── detail_encoder/
-│       ├── __init__.py           
-│       └── encoder_plus.py
-│ 
-├── requirements_org/               # 모듈별 requirements
-│   ├── requirements_customization.txt
-│   ├── requirements_feedback.txt
-│   ├── requirements_nia.txt
-│   ├── requirements_product.txt
-│   ├── requirements_makeup.txt
-│   └── requirements_style.txt
-│
-├── requirements.txt                # 통합 requirements
-├── Dockerfile                      # (선택) 배포용 컨테이너 환경
-└── README.md                       # 실행법/구조 설명
-```
+git clone https://github.com/D-X-W-Beautiq/ai.git
+cd ai
+pip install --no-cache-dir -r requirements.txt
+````
 
+> ⚠️ **GitHub 파일 크기 제한(100MB)** 으로 인해
+> `checkpoints/` 와 `data/` 폴더는 저장소에 포함되어 있지 않습니다.
+> 아래 링크에서 다운로드 후 루트에 배치해주세요.
 
-## Module: NIA (Skin Analysis)
-#### Usage Example
-```python
-import base64
-from app.service.nia_service import run_inference
+* **Checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
+* **Data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
 
-# 이미지 파일을 Base64로 인코딩
-with open("얼굴이미지.jpg", "rb") as f:
-  image_base64 = base64.b64encode(f.read()).decode()
+---
 
-request = {
-  "image_base64": image_base64
-}
-result = run_inference(request)
-print(result)
-```
+### 2️⃣ 환경 변수 설정
 
-#### Workflow
-- Base64 → PIL 변환
-- 얼굴 크롭 (MediaPipe, 기본 활성화)
-- 256x256 정규화
-- Classification (5개) + Regression (5개) 모델 추론
-- 0~100 점수로 정규화 (높을수록 좋은 상태)
-- 결과 JSON 반환 및 data/predictions.json 저장
-
-#### Notes
-- 체크포인트 경로: checkpoints/nia
-- 첫 호출 시 모델 로딩 시간 있음 (캐시 후 빠름)
-- 모든 점수는 0~100으로 정규화됨 (높을수록 좋음)
-
-#### Interpretation
-- 점수가 낮을수록 관리 필요한 것
-
-## Module: LLM Feedback
-#### Environment Variable
 ```bash
-export GEMINI_API_KEY="여기에_키"
-export FEEDBACK_PREDICTIONS_PATH="data/predictions.json_경로입력"   # 선택
+export GEMINI_API_KEY="your_api_key_here"
 ```
-##### 코랩에서 진행시
+
+---
+
+### 3️⃣ FastAPI 서버 실행
+
 ```bash
-import os
-# 환경 변수 등록 (세션 전체에서 유효)
-os.environ["GEMINI_API_KEY"] = "여기에_키"
-os.environ["FEEDBACK_PREDICTIONS_PATH"] = "data/predictions.json_경로입력" #선택
-```
-#### Usage Example
-```python
-from app.service.feedback_service import run_inference
-
-req = {}
-print(run_inference(req))
-```
-#### Notes
-- 고정 설명문 + 점수 JSON → LLM 입력 생성
-- Gemini 모델 1회 로드 → 피드백 문장 생성
-
-## Module: Product Recommendation
-#### API Key
-```python
-import os
-os.environ["GEMINI_API_KEY"] = "your-api-key-here"
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1 --timeout-keep-alive 1200
 ```
 
-#### Usage Example
-```python
-import os
-from app.service.product_service import run_inference
+---
 
-# Gemini API 키 설정
-os.environ["GEMINI_API_KEY"] = "your-api-key-here"
+### 4️⃣ 임베딩 사전 계산 및 테스트
 
-request = {
-  "skin_analysis": {
-      "dryness": 55,
-      "pigmentation": 65,
-      "pore": 50,
-      "sagging": 70,
-      "wrinkle": 45,
-      "pigmentation_reg": 68,
-      "moisture_reg": 60,
-      "elasticity_reg": 72,
-      "wrinkle_reg": 48,
-      "pore_reg": 52
-  },
-  "recommended_categories": ["moisture", "wrinkle", "pore"],
-  "filtered_products": [
-      {
-          "product_id": "P001",
-          "product_name": "하이드레이팅 세럼",
-          "brand": "라로슈포제",
-          "category": "moisture",
-          "price": 35000,
-          "review_score": 4.5,
-          "review_count": 1234,
-          "ingredients": ["히알루론산", "글리세린", "세라마이드"]
-      }
-  ],
-  "locale": "ko-KR"
-}
-
-result = run_inference(request)
-print(result)
+```bash
+python precompute_embeddings.py
+python test.py
 ```
 
-#### Notes
-- Gemini API 키 필수 (환경변수로 설정)
-- recommended_categories는 영문 전달 ("moisture", "elasticity",
-"wrinkle", "pigmentation", "pore")
-- 개별 제품 처리 실패 시에도 에러 메시지를 reason에 포함하여 반환
-- 재시도 로직: API 호출 실패 시 최대 3회 재시도
-- 타임아웃: 30초
-    
-#### 제품 추천 기준
-백엔드는 아래 기준으로 recommended_categories를 결정:
+> 모든 체인 성공 시 출력:
 
-- moisture_reg < 65 → "수분" 추천
-- elasticity_reg < 60 → "탄력" 추천
-- wrinkle_reg < 50 → "주름" 추천
-- pigmentation_reg < 70 → "색소침착" 추천
-- pore_reg < 55 → "모공" 추천
-
-
-## Pipeline Flow (NIA → Feedback → Product)
-#### Example
-```python
-from app.service.nia_service import run_inference as nia_inference
-from app.service.feedback_service import run_inference as feedback_inference
-from app.service.product_service import run_inference as product_inference
+```
+============================================================
+전체 Pipeline 테스트 완료 (모든 필수 체인 통과)!
+============================================================
+생성/확인 파일:
+  - data/predictions.json (NIA)
+  - data/output/makeup_result.png (Makeup)
+  - data/output/final_result.png (Customization)
 ```
 
-#### Flow
-1. 사용자 이미지 업로드 → BE팀 → AI서버 NIA 분석
-2. AI서버 predictions.json 생성
-3. BE팀 → AI서버: Feedback 요청
-4. BE팀 DB조회/필터링 후 → AI서버: Product Reason 요청
-5. 최종 결과 사용자에게 전달
+---
 
+## 🧩 End-to-End 파이프라인
 
-## Module: Style Recommendation
-```python
-import base64
-from app.service.style_service import run_inference
-
-with open("face.jpg", "rb") as f:
-    image_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-request = {
-    "source_image_base64": image_base64,
-    "keywords": ["pink blush", "warm tone", "red lip"]
-}
-result = run_inference(request, "data/style-recommendation")
-print(result)
+```
+NIA(피부 분석)
+   ↓
+Feedback(피드백 생성)
+   ↓
+Product(추천 이유 생성)
+   ↓
+Style(스타일 추천)
+   ↓
+Makeup(메이크업 전이)
+   ↓
+Customization(커스터마이징)
 ```
 
-## Module: Makeup Simulation 
-```python
-pip install -r requirements_org/requirements_makeup.txt
-python service/makeup_service.py
-```
+✅ **엔드투엔드 파이프라인 구현 완료**
+✅ NIA → Feedback → Product → Style → Makeup → Customization 순서로 연결
+⚠️ Makeup 단계에서 **모델 로딩 시간 약 200초 소요** (최적화 필요)
 
+---
 
-## Module: Customization
-```python
-import sys, base64
-sys.path.insert(0, "/content/drive/MyDrive")
+## ⏳ 확인 및 개선 필요사항
 
-from app.service.customization_service import run_inference
+| 항목                      | 상태       | 비고                          |
+| ----------------------- | -------- | --------------------------- |
+| Style 추천                | ✅ 정상     | Top-3 결과 반환                 |
+| Makeup 전이               | ⚠️ 지연 발생 | 모델 캐싱 확인 필요                 |
+| Customization           | ✅ 정상     | eyelid, lip, blush, skin 지원 |
+| NIA/Feedback/Product 체인 | ✅ 정상     | 요청·응답 스키마 일관성 유지            |
+| 임베딩 캐싱                  | ⚙️ 코드 완료 | 실제 속도 개선 테스트 필요             |
+| 결과 퀄리티 평가               | 🚧 예정    | 팀 내부 논의 필요                  |
 
-with open("face.jpg", "rb") as f:
-    image_base64 = base64.b64encode(f.read()).decode()
+---
 
-request = {
-    "base_image_base64": image_base64,
-    "edits": [
-        {"region": "skin", "intensity": 20},
-        {"region": "blush", "intensity": 30},
-        {"region": "lip", "intensity": 70},
-        {"region": "eye", "intensity": 50},
-    ]
-}
-result = run_inference(request)
+## 🤝 BE팀 전달사항
+
+1. **서버 환경 제한으로 마지막 속도 테스트 미실시**
+
+   * Makeup 단계에서 모델 로딩 시 **약 200초** 소요
+   * 원인: `makeup_manager.py`에서 캐시 미적용 또는 GPU 초기화 지연
+   * **해결 제안:**
+     서버 기동 시점(`startup` 이벤트)에서 `load_model()` 프리로드 처리
+
+2. **피부분석(NIA) 결과는 회귀값 기반 임시 처리**
+
+   * 점수 변환 로직은 현재 AI단에서 수행
+   * 향후 BE단 점수 스케일링 일원화 검토 필요
+
+3. **Product 추천 이유 생성(`product_service.py`)**
+
+   * AI단은 BE에서 전달받는 `filtered_products` 리스트 기반으로
+     각 제품별 추천 이유(`reason`)를 생성
+   * BE의 필드 구조가 `schemas.ProductIn`과 동일한지 확인 필요
+
+     ```python
+     class ProductIn(BaseModel):
+         product_id: str
+         product_name: str
+         brand: str
+         category: str
+         price: int
+         review_score: float
+         review_count: int
+         ingredients: List[str]
+     ```
+
+4. **엔드투엔드 요청 순서**
+
+   ```
+   /v1/nia/analyze
+   → /v1/feedback/generate
+   → /v1/product/reason
+   → /v1/style/recommend
+   → /v1/makeup/simulate
+   → /v1/custom/apply
+   ```
+
+   각 단계의 결과는 `data/output/`에 저장되며 독립 호출도 가능.
+
+---
+
+## 🧠 모델 및 라이브러리
+
+| 구분      | 사용 모델                                   |
+| ------- | --------------------------------------- |
+| 피부 분석   | NIA ResNet50 (분류5 + 회귀5)                |
+| 스타일 추천  | CLIP (`openai/clip-vit-base-patch32`)   |
+| 메이크업 전이 | Stable Diffusion v1.5 + ControlNet      |
+| 커스터마이즈  | SegFormer (`jonathandinu/face-parsing`) |
+| 텍스트 생성  | Google Gemini (2.0/2.5 flash)           |
+
+(`README.md` 생성 + 커밋 메시지 예시 포함해서)
 ```
