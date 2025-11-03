@@ -1,4 +1,3 @@
-```markdown
 # 💄 Beautiq AI Backend (FastAPI)
 
 ---
