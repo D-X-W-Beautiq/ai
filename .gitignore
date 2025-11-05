@@ -41,3 +41,4 @@ datasets/
 *.safetensors
 weights/
 outputs/
+models/
