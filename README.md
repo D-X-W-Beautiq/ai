@@ -75,8 +75,8 @@ pip install --no-cache-dir -r requirements.txt
 > `checkpoints/`, `data/` 폴더와 `models/image_encodel_l`의 일부 파일들은 저장소에 포함되어 있지 않습니다.
 > 아래 링크에서 다운로드 후 루트에 배치해주세요.
 
-* **Checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
-* **Data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
+* **checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
+* **data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
 * **models/image_encodel_l:** [🔗 Google Drive](https://drive.google.com/drive/folders/18dSPE_PBMR4KryzCoiv_AFlvcCBKl__6?usp=sharing)
 
 #### 2. 환경 변수 설정
