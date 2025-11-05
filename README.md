@@ -25,6 +25,7 @@ project_root/
 ├── main.py # FastAPI 앱 생성, CORS, /v1 마운트, 헬스체크, startup 프리로드
 ├── precompute_embeddings.py # 사전 임베딩 계산 스크립트
 ├── test.py # 전체 파이프라인 테스트 스크립트
+├── test_timing.py # 전체 파이프라인 테스트 스크립트 (소요 시간 계산 과정 포함) 
 │
 ├── api/ # 엔드포인트 라우터 모듈
 │ ├── init.py
@@ -100,7 +101,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 \
 
 ```bash
 python precompute_embeddings.py
-python test.py
+python test_timing.py
 ```
 
 > 모든 체인 성공 시 출력:
