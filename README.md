@@ -1,4 +1,4 @@
-# Beautiq AI- Backend (FastAPI) _ 1103ver
+# Beautiq AI- Backend (FastAPI) _ 1105ver
 
 <br>
 
@@ -51,6 +51,7 @@ project_root/
 ├── checkpoints/ # 모델 가중치 (.bin / .pth)
 ├── data/ # 테스트 입력 및 결과 출력
 ├── libs/ # 공용 모듈 (예: detail_encoder, pipeline 등)
+├── models/ 
 │
 ├── requirements_org/ # 서브 요구사항 모음
 ├── requirements.txt # 통합 패키지 요구사항
@@ -71,12 +72,12 @@ pip install --no-cache-dir -r requirements.txt
 ````
 
 > ⚠️ **GitHub 파일 크기 제한(100MB)** 으로 인해
-> `checkpoints/` 와 `data/` 폴더는 저장소에 포함되어 있지 않습니다.
+> `checkpoints/`, `data/` 폴더와 `models/image_encodel_l`의 일부 파일들은 저장소에 포함되어 있지 않습니다.
 > 아래 링크에서 다운로드 후 루트에 배치해주세요.
 
 * **Checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
 * **Data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
-
+* **models/image_encodel_l:** [🔗 Google Drive](https://drive.google.com/drive/folders/18dSPE_PBMR4KryzCoiv_AFlvcCBKl__6?usp=sharing)
 
 #### 2. 환경 변수 설정
 
