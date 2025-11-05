@@ -78,7 +78,8 @@ pip install --no-cache-dir -r requirements.txt
 * **checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
 * **data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
 * **models/image_encodel_l:** [🔗 Google Drive](https://drive.google.com/drive/folders/18dSPE_PBMR4KryzCoiv_AFlvcCBKl__6?usp=sharing)
-
+* 또는 위의 세 개를 [**zip 파일**](https://drive.google.com/drive/folders/10lZ3Yn5P042-dZfYE3OUm-kGnYPXRLHS?usp=sharing)로도 다운 받을 수 있습니다.
+  
 #### 2. 환경 변수 설정
 
 ```bash
