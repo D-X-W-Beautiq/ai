@@ -72,7 +72,7 @@ cd ai
 pip install --no-cache-dir -r requirements.txt
 ````
 
-> ⚠️ **GitHub 파일 크기 제한(100MB)** 으로 인해
+> ⚠️ **GitHub 파일 크기 제한** 으로 인해
 > `checkpoints/`, `data/`, `models/image_encodel_l`폴더는 저장소에 포함되어 있지 않습니다.
 > 아래 링크에서 다운로드 후 루트에 배치해주세요.
 
