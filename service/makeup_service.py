@@ -10,6 +10,7 @@ import sys
 import torch
 from typing import Optional, Union
 from PIL import Image
+import numpy as np
 
 # 프로젝트 루트를 sys.path에 추가
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,6 +21,48 @@ if project_root not in sys.path:
 from model_manager.makeup_manager import load_model
 from libs.spiga_draw import get_draw  # 포즈/랜드마크 기반 draw 이미지
 from facelib import FaceDetector  # 얼굴 검출기 (모델 웜업/보조용)
+
+
+# ------------------------------------------------------------
+# 패딩 유틸
+# ------------------------------------------------------------
+def resize_with_padding(pil_img: Image.Image, target: int = 512, pad_mode: str = "edge") -> Image.Image:
+    """
+    종횡비를 유지해 긴 변 기준으로 리사이즈한 뒤, 패딩을 넣어 정사각(512x512)으로 맞춘다.
+    pad_mode: "edge" | "reflect" | "constant"
+    """
+    w, h = pil_img.size
+    if w == 0 or h == 0:
+        raise ValueError("Invalid image size")
+
+    # 종횡비 유지 리사이즈
+    if w >= h:
+        new_w = target
+        new_h = int(round(h * (target / w)))
+    else:
+        new_h = target
+        new_w = int(round(w * (target / h)))
+
+    img_resized = pil_img.resize((new_w, new_h), Image.LANCZOS)
+
+    # Numpy로 패딩
+    arr = np.array(img_resized)
+    pad_top = (target - new_h) // 2
+    pad_bottom = target - new_h - pad_top
+    pad_left = (target - new_w) // 2
+    pad_right = target - new_w - pad_left
+
+    if pad_mode == "constant":
+        # 흰색 패딩(255)
+        arr_padded = np.pad(arr, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)), mode="constant", constant_values=255)
+    elif pad_mode == "reflect":
+        # 반사 패딩
+        arr_padded = np.pad(arr, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)), mode="reflect")
+    else:
+        # 가장자리 반복(edge)
+        arr_padded = np.pad(arr, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)), mode="edge")
+
+    return Image.fromarray(arr_padded)
 
 
 # ------------------------------------------------------------
@@ -72,28 +115,24 @@ def run_inference(
     if isinstance(makeup_image, str):
         makeup_image = Image.open(makeup_image).convert("RGB")
 
-    # 리사이즈(정사각)
-    id_image = id_image.resize((size, size))
-    makeup_image = makeup_image.resize((size, size))
+    # 2) 512 정규화 (종횡비 유지 + 패딩)
+    id_image = resize_with_padding(id_image, target=size, pad_mode="edge")
+    makeup_image = resize_with_padding(makeup_image, target=size, pad_mode="edge")
 
-    # 2) (선택) 얼굴 검출기 웜업
-    #    - 실제 검출 결과를 직접 쓰진 않지만, 초기화 지연 등을 미리 유발해
-    #      첫 추론 레이턴시를 줄이는 효과가 있음
+    # 3) 얼굴 검출기 웜업
     _ = get_face_detector()
 
-    # 3) 포즈/랜드마크 기반 보조 이미지 생성
+    # 4) 포즈/랜드마크 기반 보조 이미지 생성
     pose_image = get_draw(id_image, size=size)
 
-    # 4) 모델 로드(캐시 사용)
-    #    - makeup_manager.load_model() 안에서
-    #      UNet/ControlNet/SSR detail_encoder + 파이프라인 구성 및 체크포인트 로드
+    # 5) 모델 로드(캐시 사용)
     pipeline, makeup_encoder = load_model(device=device)
 
-    # 5) 시드 고정(선택)
+    # 6) 시드 고정(선택)
     if seed is not None:
         torch.manual_seed(seed)
 
-    # 6) 전이 실행
+    # 7) 전이 실행
     result_img = makeup_encoder.generate(
         id_image=[id_image, pose_image],
         makeup_image=makeup_image,
