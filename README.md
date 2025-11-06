@@ -1,19 +1,4 @@
-# Beautiq AI- Backend (FastAPI) _ 1105ver
-
-<br>
-
-## 주요 구성
-
-| 구분 | 설명 |
-|------|------|
-| 엔트리 | `main.py` — FastAPI 앱 생성, `/v1` 통합 마운트 |
-| 라우터 통합 | `api/router.py` — `/v1/nia`, `/v1/feedback`, `/v1/product`, `/v1/style`, `/v1/makeup`, `/v1/custom` |
-| 서비스 코드 | `service/*_service.py` — 각 단계별 추론 로직 |
-| 모델 매니저 | `model_manager/*_manager.py` — 모델 로딩/캐싱/싱글턴 |
-| 공통 스키마 | `schemas.py` — 모든 요청·응답 모델 (팀 계약서 역할) |
-| 헬스체크 | `api/health.py` — `/health`, `/ready`, `/version` |
-| 환경 설정 | `config.py` — GEMINI API 키, 경로, 체크포인트 설정 |
-| 유틸리티 | `utils/base64_utils.py`, `utils/errors.py` |
+# Beautiq AI- Backend (FastAPI) _ 1107ver
 
 <br>
 
@@ -101,7 +86,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 \
 
 ```bash
 python precompute_embeddings.py
-python test.py
+python test_timing.py
 ```
 
 > 모든 체인 성공 시 출력:
@@ -151,45 +136,15 @@ Customization(커스터마이징)
 
 <br>
 
-## ⭐BE팀 전달사항⭐
+## 주요 구성
 
-1. **피부 분석(`NIA`) 부분은 현재 회귀값 기반으로만 처리되어 있습니다.**  
-   즉, 점수 산출이 임시로 단순 회귀 결과값을 기준으로 변환되는 형태로 되어 있습니다.  
-   추후 BE단에서 점수 변환 및 스케일링 로직을 통합 관리하실 수 있도록 관련 구조를 조정하셔야 할 수 있습니다.  
-   **피부 분석, 제품 추천의 요청-응답 구조 확인 부탁드립니다.**
-
-2. **`Product`(제품 추천) 처리 관련 확인이 필요합니다.**  
-   AI팀은 BE로부터 `filtered_products` 리스트를 전달받아, 각 제품별 추천 이유(`reason`)를 생성하도록 구성되어 있습니다.  
-   따라서 BE에서 전달되는 `filtered_products`의 구조가 아래 스키마(`ProductIn`)와 동일한지 반드시 확인 부탁드립니다.  
-
-   ```python
-   class ProductIn(BaseModel):
-       product_id: str
-       product_name: str
-       brand: str
-       category: str
-       price: int
-       review_score: float
-       review_count: int
-       ingredients: List[str]
-   ```
-
-   또한 추천 이유 생성은 `Gemini` 모델을 통해 이루어지므로,
-   요청 시 필드 누락이나 포맷 불일치가 없도록 유의해주시면 감사하겠습니다.
-
-3. **전체 엔드투엔드 파이프라인은 아래 순서로 연결되어 있습니다.**
-   각 단계의 요청 및 응답은 정상적으로 이어지며,
-   최종 결과물은 `data/output/` 경로에 저장됩니다.
-
-   ```
-   /v1/nia/analyze
-   → /v1/feedback/generate
-   → /v1/product/reason
-   → /v1/style/recommend
-   → /v1/makeup/simulate
-   → /v1/custom/apply
-   ```
-
-   현재까지 모든 단계의 응답 구조는 스키마(`schemas.py`) 기준으로 일관되게 동작함을 확인하였습니다.
-   다만 메이크업 단계에서의 생성 시간 및 GPU 리소스 활용 최적화가 필요하므로,
-   서버 환경 설정 시 해당 부분을 고려해주시면 감사하겠습니다.
+| 구분 | 설명 |
+|------|------|
+| 엔트리 | `main.py` — FastAPI 앱 생성, `/v1` 통합 마운트 |
+| 라우터 통합 | `api/router.py` — `/v1/nia`, `/v1/feedback`, `/v1/product`, `/v1/style`, `/v1/makeup`, `/v1/custom` |
+| 서비스 코드 | `service/*_service.py` — 각 단계별 추론 로직 |
+| 모델 매니저 | `model_manager/*_manager.py` — 모델 로딩/캐싱/싱글턴 |
+| 공통 스키마 | `schemas.py` — 모든 요청·응답 모델 (팀 계약서 역할) |
+| 헬스체크 | `api/health.py` — `/health`, `/ready`, `/version` |
+| 환경 설정 | `config.py` — GEMINI API 키, 경로, 체크포인트 설정 |
+| 유틸리티 | `utils/base64_utils.py`, `utils/errors.py` |
