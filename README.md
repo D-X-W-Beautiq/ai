@@ -101,7 +101,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 \
 
 ```bash
 python precompute_embeddings.py
-python test_timing.py
+python test.py
 ```
 
 > 모든 체인 성공 시 출력:
