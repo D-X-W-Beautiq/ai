@@ -35,7 +35,8 @@ TIMEOUT_MAKEUP = 600
 TIMEOUT_CUSTOM = 600
 
 # TEST_IMAGE = Path("../test_data_512_padding/test3.png")
-TEST_IMAGE = Path("../test_data/test1.jpg")
+# TEST_IMAGE = Path("../test_data/test1.jpg")
+TEST_IMAGE = Path("data/inference.jpg")
 
 # 타임 측정 저장소
 _TIMES: Dict[str, float] = {}
