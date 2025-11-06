@@ -49,9 +49,14 @@ project_root/
 
 ---
 
-### 참고 (체크포인트/데이터)
+> ⚠️ **GitHub 파일 크기 제한** 으로 인해
+> `checkpoints/`, `data/`, `models/image_encodel_l`폴더는 저장소에 포함되어 있지 않습니다.
+> 아래 링크에서 다운로드 후 루트에 배치해주세요.
 
-GitHub 파일 크기 제한으로 `checkpoints/`, `data/`, `models/image_encoder_l/` 폴더는 저장소에 포함되지 않습니다. 팀 드라이브(구글 드라이브 링크)에서 다운로드 후 **프로젝트 루트**에 배치하세요.
+* **checkpoints:** [🔗 Google Drive](https://drive.google.com/drive/folders/1NLY7QJuLbwZaZUeSBRGEyPdA_irSyelO?usp=sharing)
+* **data:** [🔗 Google Drive](https://drive.google.com/drive/folders/1o12-FR_m8ddtWtmll3r0lQ3KAptRZEpz?usp=sharing)
+* **models/image_encodel_l:** [🔗 Google Drive](https://drive.google.com/drive/folders/18dSPE_PBMR4KryzCoiv_AFlvcCBKl__6?usp=sharing)
+* 또는 위의 세 개를 [**zip 파일**](https://drive.google.com/drive/folders/10lZ3Yn5P042-dZfYE3OUm-kGnYPXRLHS?usp=sharing)로도 다운 받을 수 있습니다.
 
 ## 실행 방법
 
