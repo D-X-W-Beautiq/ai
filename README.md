@@ -47,6 +47,103 @@ project_root/
 
 <br>
 
+아래 블록 그대로 README에 교체해서 쓰면 돼! (코드블록은 모두 `bash`로 통일했어.)
+
+---
+
+## 실행 방법
+
+> **터미널 1 : FastAPI**
+
+```bash
+cd ~/jimin/ai_1107ver
+pip install --no-cache-dir -r requirements.txt
+```
+
+```bash
+export GEMINI_API_KEY="your_api_key_here"
+```
+
+```bash
+# 혹시 살아있는 서버 있을까봐 선제 종료
+pkill -f "uvicorn main:app" || true
+
+# FastAPI 서버 실행 (ngrok 모드: root-path 미사용)
+uvicorn main:app --host 0.0.0.0 --port 8000 \
+  --workers 1 --timeout-keep-alive 1200
+```
+
+> **터미널 2 : ngrok**
+
+```bash
+# 서버 헬스 확인 (정상일 때 "status": "ok")
+curl -s http://127.0.0.1:8000/health
+```
+
+```bash
+# 실행 중인 ngrok 종료
+pkill -f '^ngrok\b' 2>/dev/null || true
+
+# 오래된 바이너리/압축 삭제
+rm -f ~/.local/bin/ngrok ~/ngrok ~/ngrok.tgz
+
+# ✅ v3 정식 링크로 새로 받기 (캐시 무시)
+curl -fSL -H 'Cache-Control: no-cache' \
+  -o ngrok-v3.tgz \
+  https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+
+tar -xzf ngrok-v3.tgz      # 여기서 ./ngrok 생성
+
+# 설치 전에 바로 버전 확인 (반드시 3.x.x)
+./ngrok version
+```
+
+```bash
+# 설치 및 경로 갱신
+install -m 755 ./ngrok ~/.local/bin/ngrok
+hash -r
+~/.local/bin/ngrok version  # 다시 3.x.x 확인
+which -a ngrok
+```
+
+```bash
+# ngrok 실행
+ngrok config add-authtoken <token>
+
+# 터널 열기 (아시아 리전)
+ngrok http --region=ap 8000
+# → 여기서 나온 HTTPS URL(BASE_URL)을 백엔드/프론트 팀에 전달하세요.
+```
+
+> **터미널 3 : End-to-End Test**
+
+```bash
+cd ~/jimin/ai_1107ver
+```
+
+```bash
+python precompute_embeddings.py
+python test_timing.py
+```
+
+> 모든 체인 성공 시 출력 예:
+
+```
+============================================================
+전체 Pipeline 테스트 완료 (모든 필수 체인 통과)!
+============================================================
+생성/확인 파일:
+  - data/predictions.json (NIA)
+  - data/output/makeup_result.png (Makeup)
+  - data/output/final_result.png (Customization)
+```
+
+---
+
+### 참고 (체크포인트/데이터)
+
+GitHub 파일 크기 제한으로 `checkpoints/`, `data/`, `models/image_encoder_l/` 폴더는 저장소에 포함되지 않습니다. 팀 드라이브(구글 드라이브 링크)에서 다운로드 후 **프로젝트 루트**에 배치하세요.
+
 ## 실행 방법
 
 #### 1. 클론 및 환경 세팅
