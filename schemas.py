@@ -18,6 +18,7 @@ class NIARequest(BaseModel):
 class NIAResponse(BaseModel):
     status: str
     predictions: Optional[NIAPredictions] = None
+    feedback: Optional[str] = None
     message: Optional[str] = None
 
 # ---------------------- Feedback -----------------------

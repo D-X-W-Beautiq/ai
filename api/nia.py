@@ -17,13 +17,41 @@ router = APIRouter(prefix="/nia", tags=["NIA - 피부 분석"])
 async def analyze_skin(request: NIARequest) -> NIAResponse:
     try:
         from service.nia_service import run_inference
+        from service.feedback_service import run_inference as feedback_inference
+
+        # 1. 피부 분석 실행
         payload = request.model_dump()
         result = run_inference(payload)
 
-        if result.get("status") == "success":
-            return NIAResponse(status="success", predictions=result.get("predictions"))
-        # 실패 바디를 스키마로 직접 반환
-        return NIAResponse(status="error", message=result.get("message", "NIA 분석 실패"))
+        if result.get("status") != "success":
+            return NIAResponse(
+                status="error", message=result.get("message", "NIA 분석 실패")
+            )
+
+        predictions = result.get("predictions")
+
+        # 2. 피드백 생성을 위한 요청 준비
+        feedback_payload = {
+            "predictions": {
+                "moisture_reg": predictions.get("moisture_reg"),
+                "elasticity_reg": predictions.get("elasticity_reg"),
+                "wrinkle_reg": predictions.get("wrinkle_reg"),
+                "pigmentation_reg": predictions.get("pigmentation_reg"),
+                "pore_reg": predictions.get("pore_reg"),
+            }
+        }
+
+        # 3. 피드백 생성 실행
+        feedback_result = feedback_inference(feedback_payload)
+        feedback_text = None
+
+        if feedback_result.get("status") == "success":
+            feedback_text = feedback_result.get("feedback")
+
+        # 4. 통합 응답 반환
+        return NIAResponse(
+            status="success", predictions=predictions, feedback=feedback_text
+        )
 
     except ValueError as e:
         return NIAResponse(status="error", message=str(e))
