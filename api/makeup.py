@@ -16,6 +16,16 @@ def _b64_to_pil(b64: str) -> Image.Image:
 @router.post("/simulate", response_model=MakeupResponse, response_model_exclude_none=True)
 async def simulate(req: MakeupRequest):
     try:
+        # 입력 검증
+        if not req.source_image_base64:
+            return MakeupResponse(
+                status="error", message="source_image_base64가 필요합니다."
+            )
+        if not req.style_image_base64:
+            return MakeupResponse(
+                status="error", message="style_image_base64가 필요합니다."
+            )
+
         id_img = _b64_to_pil(req.source_image_base64)
         ref_img = _b64_to_pil(req.style_image_base64)
 
