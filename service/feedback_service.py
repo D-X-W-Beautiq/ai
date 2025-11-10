@@ -51,14 +51,39 @@ def _load_predictions_from_file(path: str) -> Dict[str, Any]:
     raise ValueError("predictions JSON 구조가 올바르지 않습니다.")
 
 def _extract_predictions(request: Dict[str, Any]) -> Dict[str, Any]:
-    """요청에서 predictions_json_path 추출 후 파일 로드"""
-    if "predictions_json_path" in request:
+    """요청에서 predictions 추출 (우선순위 순)"""
+    
+    # 1순위: predictions 딕셔너리 직접 전달 (NIA API 통합, Feedback API 직접 호출)
+    if "predictions" in request and request["predictions"] is not None:
+        preds = request["predictions"]
+        if not isinstance(preds, dict):
+            raise ValueError("'predictions' 값이 dict가 아닙니다.")
+        return preds
+    
+    # 2순위: predictions_json 문자열
+    if "predictions_json" in request and request["predictions_json"]:
+        json_str = request["predictions_json"]
+        try:
+            raw = json.loads(json_str.strip())
+        except Exception as e:
+            raise ValueError(f"predictions_json 파싱 실패: {e}")
+        
+        # {"predictions": {...}} 형태면 내부 추출
+        if isinstance(raw, dict) and "predictions" in raw:
+            return raw["predictions"]
+        # 아니면 전체를 predictions로 간주
+        if isinstance(raw, dict):
+            return raw
+        raise ValueError("predictions_json 구조가 올바르지 않습니다.")
+    
+    # 3순위: predictions_json_path 파일 경로
+    if "predictions_json_path" in request and request["predictions_json_path"]:
         path = request["predictions_json_path"]
         if not isinstance(path, str) or not path.strip():
             raise ValueError("'predictions_json_path'는 비어있지 않은 문자열이어야 합니다.")
         return _load_predictions_from_file(path.strip())
     
-    # 경로가 없으면 기본 경로 사용
+    # 4순위: 기본 파일 경로
     return _load_predictions_from_file(DEFAULT_PREDICTIONS_PATH)
 
 def _to_int_score(val: Any, key: str) -> int:
