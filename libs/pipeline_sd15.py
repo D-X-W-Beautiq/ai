@@ -39,7 +39,17 @@ from diffusers.utils.torch_utils import is_compiled_module, is_torch_version, ra
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.stable_diffusion.pipeline_output import StableDiffusionPipelineOutput
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
-from diffusers.models.controlnets.multicontrolnet import MultiControlNetModel
+
+try:
+    # 최신 diffusers 구조 (models.controlnets.*)
+    from diffusers.models.controlnets.multicontrolnet import MultiControlNetModel
+except ModuleNotFoundError:
+    try:
+        # 예전 diffusers 구조 (pipelines.controlnet.multicontrolnet)
+        from diffusers.pipelines.controlnet.multicontrolnet import MultiControlNetModel
+    except ModuleNotFoundError:
+        # 정말 없는 버전이면 MultiControlNetModel 없이 단일 ControlNet만 쓰도록 fallback
+        MultiControlNetModel = None
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
