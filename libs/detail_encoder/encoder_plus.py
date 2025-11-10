@@ -34,15 +34,30 @@ class detail_encoder(nn.Module):
         self.dtype = dtype
 
         # ---- Load CLIP-ViT-L/14 (force eager attention to avoid SDPA issue) ----
-        # TF/PT 자동 인식: pytorch_model.bin 없고 TF 가중치만 있으면 from_tf=True
-        has_pt = os.path.exists(os.path.join(image_encoder_path, "pytorch_model.bin"))
-        has_tf = (
-            os.path.exists(os.path.join(image_encoder_path, "tf_model.h5"))
-            or any(name.endswith(".index") or name.endswith(".data-00000-of-00001")
-                for name in os.listdir(image_encoder_path) if os.path.isfile(os.path.join(image_encoder_path, name)))
+        # HuggingFace 모델명인지 로컬 경로인지 체크
+        is_hf_model = "/" in image_encoder_path and not os.path.isabs(
+            image_encoder_path
         )
-        force_tf = os.getenv("MAKEUP_IMAGE_ENCODER_FROM_TF", "").strip().lower() in ("1", "true", "yes")
-        use_from_tf = force_tf or ((not has_pt) and has_tf)
+
+        if is_hf_model:
+            # HuggingFace 모델명인 경우 바로 사용
+            use_from_tf = False
+        else:
+            # 로컬 경로인 경우 TF/PT 자동 인식
+            has_pt = os.path.exists(
+                os.path.join(image_encoder_path, "pytorch_model.bin")
+            )
+            has_tf = os.path.exists(
+                os.path.join(image_encoder_path, "tf_model.h5")
+            ) or any(
+                name.endswith(".index") or name.endswith(".data-00000-of-00001")
+                for name in os.listdir(image_encoder_path)
+                if os.path.isfile(os.path.join(image_encoder_path, name))
+            )
+            force_tf = os.getenv(
+                "MAKEUP_IMAGE_ENCODER_FROM_TF", ""
+            ).strip().lower() in ("1", "true", "yes")
+            use_from_tf = force_tf or ((not has_pt) and has_tf)
 
         try:
             clip_encoder = OriginalCLIPVisionModel.from_pretrained(
@@ -62,7 +77,6 @@ class detail_encoder(nn.Module):
 
         # Be explicit in case transformers tries to flip it later
         clip_encoder.config.attn_implementation = "eager"
-
 
         # Our local implementation that mirrors the config
         self.image_encoder = CLIPVisionModel(clip_encoder.config)

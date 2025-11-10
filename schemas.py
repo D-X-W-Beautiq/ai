@@ -18,6 +18,7 @@ class NIARequest(BaseModel):
 class NIAResponse(BaseModel):
     status: str
     predictions: Optional[NIAPredictions] = None
+    feedback: Optional[str] = None
     message: Optional[str] = None
 
 # ---------------------- Feedback -----------------------
@@ -129,8 +130,10 @@ class StyleResponse(BaseModel):
 
 # ---------------------- Makeup -------------------------
 class MakeupRequest(BaseModel):
-    source_image_base64: str
-    style_image_base64: Optional[str] = None
+    source_image_base64: str = Field(..., description="사용자 얼굴 이미지 base64")
+    style_image_base64: str = Field(
+        ..., description="참조 메이크업 스타일 이미지 base64"
+    )
 
 class MakeupResponse(BaseModel):
     status: str
