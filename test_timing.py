@@ -1,4 +1,4 @@
-# test_v2_chain_strict.py
+# test_timing.py
 """
 AI Pipeline 연결 테스트 (스펙 검증 강화 + 체인 강제 v2, 정리본)
 NIA → Feedback → Product → Style → Makeup → Customization
@@ -21,6 +21,15 @@ from typing import Any, Dict, List
 import requests
 
 # ============================================================================
+# (추가) 선택 기능: 4열 합성용 Pillow
+# ============================================================================
+try:
+    from PIL import Image
+    _PIL_AVAILABLE = True
+except Exception:
+    _PIL_AVAILABLE = False
+
+# ============================================================================
 # 설정
 # ============================================================================
 # 프록시 없이 직접 붙으면 예: "http://127.0.0.1:8000"
@@ -37,6 +46,15 @@ TIMEOUT_CUSTOM = 600
 # TEST_IMAGE = Path("../test_data_512_padding/test3.png")
 # TEST_IMAGE = Path("../test_data/test1.jpg")
 TEST_IMAGE = Path("data/inference.jpg")
+
+# (추가) 스타일 키워드 (인자로 덮어쓸 수 있음)
+STYLE_KEYWORDS: List[str] = ["natural", "pink blush", "soft"]
+
+# (추가) 커스터마이징 기본 edits (인자로 덮어쓸 수 있음) — 원래 하드코딩과 동일
+CUSTOM_EDITS: List[Dict[str, Any]] = [
+    {"region": "lip", "intensity": 70},
+    {"region": "blush", "intensity": 60},
+]
 
 # 타임 측정 저장소
 _TIMES: Dict[str, float] = {}
@@ -180,6 +198,55 @@ def require_success(name: str, resp: Dict[str, Any]):
         _print_time_summary()
         raise SystemExit(f"❌ {name} 실패 — 중단합니다. 상세: {resp.get('message','알 수 없는 에러')}")
 
+# (추가) base64 저장 유틸
+def _decode_b64_to_file(b64: str, out_path: Path) -> None:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(base64.b64decode(b64))
+
+# (추가) 4열 요약 합성
+def _save_4col_summary(source_path: Path, ref_path: Path, makeup_path: Path, custom_path: Path,
+                       out_path: Path = Path("data/output/summary_4col.png")) -> None:
+    if not _PIL_AVAILABLE:
+        print("⚠️ Pillow 미설치로 4열 합성을 생략합니다. (pip install pillow)")
+        return
+    try:
+        imgs = [Image.open(p).convert("RGB") for p in [source_path, ref_path, makeup_path, custom_path]]
+        H = min(i.height for i in imgs)
+        resized = [i.resize((int(i.width * H / i.height), H)) for i in imgs]
+        W = sum(i.width for i in resized)
+        canvas = Image.new("RGB", (W, H), (255, 255, 255))
+        x = 0
+        for im in resized:
+            canvas.paste(im, (x, 0))
+            x += im.width
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(out_path)
+        print(f"  ✅ 4열 요약 저장: {out_path}")
+    except Exception as e:
+        print(f"⚠️ 4열 합성 실패(무시): {e}")
+
+# (추가) 커스터마이징 정규화/로그
+_ALLOWED_REGIONS = {"skin", "lip", "eyelid", "blush"}
+_ALIAS = {"eye": "eyelid"}
+
+def _normalize_custom_edits(edits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    norm: List[Dict[str, Any]] = []
+    for e in edits:
+        region = str(e.get("region", "")).strip().lower()
+        region = _ALIAS.get(region, region)
+        intensity = int(e.get("intensity", 50))
+        intensity = max(0, min(100, intensity))
+        if region in _ALLOWED_REGIONS:
+            norm.append({"region": region, "intensity": intensity})
+    return norm
+
+def _pretty_print_edits(edits: List[Dict[str, Any]]) -> None:
+    if not edits:
+        print("적용 edits: (없음)")
+        return
+    line = ", ".join([f"{e['region']}={e['intensity']}" for e in edits])
+    print(f"적용 edits: {line}")
+
 # ============================================================================
 # 단계 실행
 # ============================================================================
@@ -237,7 +304,8 @@ def step3_product(preds: Dict[str, Any]):
 
 def step4_style(image_b64: str) -> str:
     print("\n" + "="*60); print("STEP 4: Style - 스타일 추천"); print("="*60)
-    payload = {"source_image_base64": image_b64, "keywords": ["natural","pink blush","soft"]}
+    # 기본 키워드는 STYLE_KEYWORDS, 인자로 덮어쓸 수 있음
+    payload = {"source_image_base64": image_b64, "keywords": STYLE_KEYWORDS}
     r = requests.post(f"{BASE_URL}/style/recommend", json=payload, timeout=TIMEOUT_STYLE)
     print_response("Style", r)
     data = r.json()
@@ -249,6 +317,15 @@ def step4_style(image_b64: str) -> str:
         raise SystemExit("❌ Style 결과가 비어 있어 Makeup을 진행할 수 없습니다.")
     sid = results[0].get("style_id","")
     print(f"스타일 추천 완료! (Top-1 사용, style_id: {sid})")
+
+    # (추가) Top-1 style reference 저장
+    try:
+        style_ref_path = Path("data/output/style_ref.png")
+        _decode_b64_to_file(results[0]["style_image_base64"], style_ref_path)
+        print(f"  ✅ 스타일 레퍼런스 저장: {style_ref_path}")
+    except Exception:
+        print("⚠️ 스타일 레퍼런스 저장 실패(무시).")
+
     return results[0]["style_image_base64"]
 
 def step5_makeup(src_b64: str, style_b64: str) -> str:
@@ -284,7 +361,11 @@ def step5_makeup(src_b64: str, style_b64: str) -> str:
 
 def step6_custom(makeup_b64: str):
     print("\n" + "="*60); print("STEP 6: Customization - 메이크업 커스터마이징"); print("="*60)
-    payload = {"base_image_base64": makeup_b64, "edits":[{"region":"lip","intensity":70},{"region":"blush","intensity":60}]}
+    # (추가) 정규화 + 적용 로그
+    edits = _normalize_custom_edits(CUSTOM_EDITS)
+    _pretty_print_edits(edits)
+
+    payload = {"base_image_base64": makeup_b64, "edits": edits}
     try:
         print(f"⏳ Customization API 호출 중 (≤ {TIMEOUT_CUSTOM}s)...")
         r = requests.post(f"{BASE_URL}/custom/apply", json=payload, timeout=TIMEOUT_CUSTOM)
@@ -362,9 +443,59 @@ def main():
     print("  - data/predictions.json (NIA)")
     print("  - data/output/makeup_result.png (Makeup)")
     print("  - data/output/final_result.png (Customization)")
+    print("  - data/output/style_ref.png (Style Top-1)")
+    print("  - data/output/summary_4col.png (4열 요약)")
+
+    # (추가) 4열 요약 저장 시도
+    _save_4col_summary(
+        source_path=TEST_IMAGE,
+        ref_path=Path("data/output/style_ref.png"),
+        makeup_path=Path("data/output/makeup_result.png"),
+        custom_path=Path("data/output/final_result.png"),
+    )
 
     # 시간 요약 출력
     _print_time_summary()
 
+# ============================================================================
+# (추가) CLI 인자 — base_url, custom_file 제거
+# ============================================================================
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Beautiq Pipeline E2E Test (Timing + Custom)")
+    parser.add_argument("--input_image", type=str, default=str(TEST_IMAGE),
+                        help="입력 소스 이미지 경로 (default: data/inference.jpg)")
+    parser.add_argument("--keywords", type=str, default=",".join(STYLE_KEYWORDS),
+                        help="스타일 키워드(쉼표 구분). 예: 'natural,pink blush,soft'")
+    parser.add_argument("--custom", type=str, default="",
+                        help="간단 커스텀 포맷. 예: 'skin=20,lip=80,eye=60,blush=50'")
+
+    args = parser.parse_args()
+
+    # 전역 설정 덮어쓰기 — 기본값은 기존과 동일
+    TEST_IMAGE = Path(args.input_image)
+
+    # 키워드 인자(없으면 기본 유지)
+    ks = [s.strip() for s in args.keywords.split(",")] if args.keywords else []
+    if ks:
+        STYLE_KEYWORDS = [k for k in ks if k]
+
+    # 커스텀 인자: string > 기본값
+    if args.custom:
+        parsed: List[Dict[str, Any]] = []
+        for token in args.custom.split(","):
+            token = token.strip()
+            if not token or "=" not in token:
+                continue
+            k, v = token.split("=", 1)
+            try:
+                parsed.append({"region": k.strip(), "intensity": int(v.strip())})
+            except Exception:
+                pass
+        if parsed:
+            CUSTOM_EDITS = parsed
+
+    # 정규화 1회 수행(eye→eyelid, 0~100 clamp)
+    CUSTOM_EDITS = _normalize_custom_edits(CUSTOM_EDITS)
+
     main()
