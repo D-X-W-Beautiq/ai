@@ -204,4 +204,4 @@ Requirements:
 Recommendation Reason:
 """
 
-    return prompt
+    return prompt# Gemini 2.5 Flash 설정 확인용 커밋
