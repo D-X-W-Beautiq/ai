@@ -24,8 +24,8 @@ def _get_model():
 
         # 모델 한 번만 생성 및 캐싱
         genai.configure(api_key=api_key)
-        _product_model = genai.GenerativeModel("gemini-2.5-flash")
-        print("✓ Loaded Gemini model: gemini-2.5-flash")
+        _product_model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        print("✓ Loaded Gemini model: gemini-2.0-flash-exp")
 
         return _product_model
 
